@@ -65,6 +65,9 @@ const ACT = {
   // navigation & quick picks
   wf: el => { S.ui.wf = el.dataset.k; save(); rerender(); },
   goQuick: () => { go('#/quick'); },
+  tIntent: el => { S.ui.tIntent = el.dataset.k; S.ui.tMore = false; save(); rerender(); },
+  tMore: () => { S.ui.tMore = true; rerender(); },
+  tMins: el => { S.ui.quick.mins = +el.dataset.m; save(); rerender(); },
   qpick: el => {
     const k = el.dataset.k, q = S.ui.quick, eq = (q.eq || S.settings.eq).slice();
     if (RECIPES[k].needs && !eq.includes(RECIPES[k].needs)) { toast(`Needs a ${EQ_LABEL[RECIPES[k].needs].toLowerCase()}`); return; }

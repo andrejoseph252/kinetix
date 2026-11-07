@@ -78,7 +78,12 @@ function rerender() { const y = window.scrollY; const parts = (location.hash || 
 const PLAY = ICON.play.replace('<svg', '<svg style="fill:currentColor;stroke:none"');
 const topIcons = () => `<a class="icon-btn" href="#/timer" aria-label="Timer">${ICON.stopwatch}</a><a class="icon-btn" href="#/setup" aria-label="Settings">${ICON.gear}</a>`;
 const mondayOf = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
-const histCat = h => h.cat || (h.kind === 'mobility' ? 'mobility' : 'strength');
+const histCat = h => {
+  if (h.cat) return h.cat;
+  if (h.kind === 'mobility') return 'mobility';
+  const r = Object.values(RECIPES).find(x => x.name === h.title);
+  return r ? r.cat : 'strength';
+};
 const isMob = c => c === 'mobility' || c === 'recovery';
 function thumbsOf(sess, n = 6) { return sess.blocks.filter(b => b.fmt !== 'note').flatMap(b => b.items).filter(it => BY[it.ex]).slice(0, n); }
 function sessCard(sess, href, eyebrow, done, extra = '', mins = null) {
@@ -121,27 +126,81 @@ function quickPicks() {
 }
 
 /* ---------- Today ---------- */
+// Options on Today, grouped by what you're in the mood for
+const INTENTS = {
+  train: { name: 'Train', blurb: 'Lift something', focuses: ['strength', 'push', 'pull', 'legs', 'upper', 'lower', 'arms', 'athletic', 'kettlebell'] },
+  move:  { name: 'Move', blurb: 'Mobility & recovery', focuses: ['control', 'recovery'] },
+  sweat: { name: 'Sweat', blurb: 'Conditioning', focuses: ['engine', 'athletic'] },
+};
+const dayKey = d => new Date(d).toDateString();
+function daysSince(pred) {
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  let best = Infinity;
+  for (const h of S.history) if (pred(h)) { const d = new Date(h.date); d.setHours(0, 0, 0, 0); best = Math.min(best, Math.round((t0 - d) / 864e5)); }
+  return best;
+}
+const isTraining = h => !isMob(histCat(h)) && h.kind !== 'mobility' && (h.dur || 0) >= 300;
+// One recommendation, with the reason, from what you've actually done
+function suggestion() {
+  const train = daysSince(isTraining), mob = daysSince(h => isMob(histCat(h))), cond = daysSince(h => histCat(h) === 'engine');
+  const lastHard = S.history.filter(isTraining).slice(-1)[0];
+  const eq = S.ui.quick.eq || S.settings.eq;
+  if (train === 0) return { focus: 'recovery', mins: 20, why: 'You trained today. A short recovery session helps you bounce back.' };
+  if (train === 1 && lastHard && (lastHard.rpe || 0) >= 8) return { focus: 'recovery', mins: 30, why: 'Yesterday was a hard one. Keep today easy.' };
+  if (mob >= 3 && mob !== Infinity) return { focus: 'control', mins: 30, why: `No mobility for ${mob} days. Time to open things up.` };
+  if (train === 1) return { focus: 'control', mins: 30, why: 'You trained yesterday. Mobility and control work today keeps you moving well.' };
+  if (cond >= 7 && train !== Infinity) return { focus: 'engine', mins: 20, why: cond === Infinity ? 'You haven’t done any conditioning yet. Build your engine.' : 'No conditioning in over a week.' };
+  if (train === Infinity) return { focus: 'strength', mins: 45, why: 'Ease in with a full-body strength session.' };
+  return { focus: S.settings.program && S.settings.program !== 'athletic' && eq.includes('machine') ? 'upper' : 'strength', mins: 45, why: `${train} days since you last trained. Good day to lift.` };
+}
+function optRow(k, mins, extra = '') {
+  const R = RECIPES[k];
+  return `<button class="qrow" data-act="qpick" data-k="${k}" data-m="${mins}" style="--c:${cvar(R.cat)}">
+    <span class="grow"><b>${R.name}</b><span>${extra || R.blurb}</span></span><span class="qrow-m">${mins}<small>min</small></span></button>`;
+}
 VIEWS.today = () => {
   const pod = partOfDay(), greet = { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', night: 'Evening' }[pod];
   setTop(`<div class="grow"><div class="sub">${new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</div><h1>${greet}</h1></div>${topIcons()}`);
-  const P = S.plan;
-  let train = '';
-  if (P) {
+  const P = S.plan, trainedToday = daysSince(isTraining) === 0;
+  // --- up next
+  let next = '';
+  if (trainedToday) {
+    const h = S.history.filter(isTraining).slice(-1)[0];
+    next = `<div class="card donecard" style="--c:var(--c-strength)"><div class="row"><span class="tick">${ICON.check}</span><div class="grow"><div class="title" style="font-size:24px">Trained today</div><div class="muted small">${esc(h.title)}, ${Math.round((h.dur || 0) / 60)} min. Nice work.</div></div></div></div>`;
+  } else if (P) {
     const w = P.week, i = P.days.findIndex((d, j) => !P.done['w' + w + 'd' + j]);
-    if (i >= 0) {
-      const d = P.days[i];
-      train = sessCard(d, `#/s/p${i}`, `Week ${w}, day ${i + 1} of your plan`, false, `<button class="btn sm cbtn" data-act="startSess" data-r="p${i}">${PLAY} Start</button>`, estimate(d, w));
-    } else train = `<div class="card" style="--c:var(--c-strength)"><div class="eyebrow cc">Week ${w} of your plan</div><div class="title" style="margin-top:4px">Week complete ✓</div><div class="muted small">Great work. ${w < BLOCK_WEEKS ? 'Move on to the next week when you’re ready — or keep things moving with mobility.' : 'Block finished — start a fresh one in Workouts.'}</div>${w < BLOCK_WEEKS ? `<button class="btn sm cbtn" style="margin-top:10px" data-act="week" data-d="1">Start week ${w + 1}</button>` : ''}</div>`;
-  } else train = `<div class="card phase"><div class="eyebrow">No plan yet</div><div class="title" style="margin-top:4px;font-weight:800;font-size:17px">Want structure?</div><div class="muted small">Set up a 6-week plan — or just grab a one-off session below.</div><a class="btn pri sm" style="margin-top:10px" href="#/setup">Build a plan</a></div>`;
-  $('#view').innerHTML = `${activeCard()}
-    ${routineHero(routineNow(), 'Mobility for right now')}
-    <div class="h2">Training</div>
-    ${train}
-    <div class="h2">Or do something else</div>
-    ${quickPicks()}
-    ${S.quick ? `<div style="margin-top:12px">${sessCard(S.quick, '#/s/q', 'Last generated', false, '', estimate(S.quick))}</div>` : ''}
-    <div class="h2">Consistency</div>
-    ${weekStrip()}`;
+    if (i >= 0) next = sessCard(P.days[i], `#/s/p${i}`, `Week ${w}, day ${i + 1} of your plan`, false, `<button class="btn sm cbtn" data-act="startSess" data-r="p${i}">${PLAY} Start</button>`, estimate(P.days[i], w));
+    else next = `<div class="card donecard" style="--c:var(--c-strength)"><div class="row"><span class="tick">${ICON.check}</span><div class="grow"><div class="title" style="font-size:24px">Week ${w} done</div><div class="muted small">${w < BLOCK_WEEKS ? 'Every plan day is ticked off.' : 'Block finished. Start a fresh one in Workouts.'}</div></div>${w < BLOCK_WEEKS ? `<button class="btn sm cbtn" data-act="week" data-d="1">Week ${w + 1}</button>` : ''}</div></div>`;
+  } else next = `<a class="card nextcta" href="#/setup"><div class="grow"><div class="title" style="font-size:24px">Set up a plan</div><div class="muted small">PPL, upper / lower, full body, athletic, or build your own.</div></div><span class="btn sm pri">Build</span></a>`;
+  const mobility = routineHero(routineNow(), 'Mobility for right now');
+  // --- something else
+  const intent = INTENTS[S.ui.tIntent] ? S.ui.tIntent : 'train', mins = S.ui.quick.mins || 45;
+  const eq = S.ui.quick.eq || S.settings.eq, ok = k => !RECIPES[k].needs || eq.includes(RECIPES[k].needs);
+  const sug = suggestion();
+  let opts = INTENTS[intent].focuses.filter(ok).filter(k => k !== sug.focus);
+  if (intent === 'train') {
+    // lead with what fits your program; the rest behind "More"
+    const gymish = ['ppl', 'ul', 'full'].includes(S.settings.program);
+    const order = gymish ? ['push', 'pull', 'legs', 'upper', 'lower', 'arms', 'strength', 'athletic', 'kettlebell'] : ['strength', 'athletic', 'kettlebell', 'upper', 'lower', 'push', 'pull', 'legs', 'arms'];
+    opts.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  }
+  const more = opts.length > 4 && !S.ui.tMore ? opts.length - 4 : 0;
+  if (more) opts = opts.slice(0, 4);
+  const else_ = `<div class="h2">Something else</div>
+    <div class="sugg" style="--c:${cvar(RECIPES[sug.focus].cat)}"><div class="sugg-why">${esc(sug.why)}</div>${optRow(sug.focus, sug.mins, 'Suggested for today')}</div>
+    <div class="seg intents" style="margin-top:14px">${Object.entries(INTENTS).map(([k, v]) => `<button class="${intent === k ? 'on' : ''}" data-act="tIntent" data-k="${k}">${v.name}</button>`).join('')}</div>
+    <div class="row" style="margin:12px 0 10px"><span class="muted small grow">${INTENTS[intent].blurb}</span><div class="minchips">${[20, 30, 45, 60].map(m => `<button class="${mins === m ? 'on' : ''}" data-act="tMins" data-m="${m}">${m}</button>`).join('')}<span class="muted small">min</span></div></div>
+    <div class="qlist">${opts.map(k => optRow(k, mins)).join('')}
+      ${more ? `<button class="qrow qmore" data-act="tMore"><span class="grow"><b>${more} more</b><span>${INTENTS[intent].focuses.filter(ok).filter(k => k !== sug.focus && !opts.includes(k)).map(k => RECIPES[k].name).join(', ')}</span></span><span class="qrow-m">${ICON.down}</span></button>` : ''}
+      ${intent === 'move' ? `<a class="qrow" href="#/mobility" style="--c:var(--c-mobility)"><span class="grow"><b>Guided routines</b><span>Morning, desk, evening and bedtime flows</span></span><span class="qrow-m">${ICON.back.replace('<svg', '<svg style="transform:scaleX(-1)"')}</span></a>` : ''}
+      ${intent === 'sweat' ? `<a class="qrow" href="#/timer" style="--c:var(--c-engine)"><span class="grow"><b>Interval timer</b><span>Tabata, EMOM, your own work / rest</span></span><span class="qrow-m">${ICON.stopwatch}</span></a>` : ''}
+      <button class="qrow" data-act="goQuick" style="--c:var(--c-custom)"><span class="grow"><b>Customise</b><span>Pick focus, time, energy and equipment</span></span><span class="qrow-m">${ICON.edit}</span></button>
+    </div>
+    ${S.quick ? `<a class="resume-row" href="#/s/q"><span class="cdot" style="--c:${cvar(catOf(S.quick))}"></span><span class="grow">Pick up <b>${esc(S.quick.name)}</b>, the last session you generated</span><span class="muted small">${estimate(S.quick)} min</span></a>` : ''}`;
+  $('#view').innerHTML = `${weekStrip()}
+    ${activeCard()}
+    ${trainedToday ? mobility + `<div class="h2">Up next</div>` + next : `<div class="h2" style="margin-top:22px">Up next</div>` + next + `<div style="margin-top:12px">${mobility}</div>`}
+    ${else_}`;
 };
 
 /* ---------- Workouts ---------- */
