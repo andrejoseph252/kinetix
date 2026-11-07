@@ -15,13 +15,51 @@ const ACT = {
   resume: () => { showOverlay('player'); renderPlayer(); },
   shuffleDay: el => {
     const i = +el.dataset.i;
+    if (!S.plan.days[i].key) { toast('This is your own day — edit it with the pencil'); return; }
     confirmSheet('Shuffle this day?', 'Pick new exercises for every slot on this day (same structure). Your edits to this day are replaced.', 'Shuffle', () => {
       const used = new Set(S.plan.days.flatMap((d, j) => j === i ? [] : d.blocks.flatMap(b => (b.items || []).map(x => x.ex))));
-      const ctx = ctxFor(S.settings, (Math.random() * 2 ** 31) | 0, used);
+      const ctx = ctxFor(planSettings(), (Math.random() * 2 ** 31) | 0, used);
+      const nm = S.plan.days[i].name;
       S.plan.days[i] = genDay(S.plan.days[i].key, ctx);
+      S.plan.days[i].name = nm;
       if (S.active && S.active.ref === 'p' + i) S.active.logs = {};
       save(); rerender();
     });
+  },
+
+  // plan editor
+  pdMove: el => {
+    const i = +el.dataset.i, j = i + +el.dataset.d, D = S.plan.days; if (j < 0 || j >= D.length) return;
+    [D[i], D[j]] = [D[j], D[i]]; remapDone(k => k === i ? j : k === j ? i : k);
+    if (S.active && S.active.ref[0] === 'p') { const a = +S.active.ref.slice(1); if (a === i || a === j) { S.active.ref = 'p' + (a === i ? j : i); S.active.src = S.active.ref; S.active.day = +S.active.ref.slice(1); } }
+    save(); rerender();
+  },
+  pdDup: el => { const i = +el.dataset.i, c = clone(S.plan.days[i]); c.id = uid(); c.name += ' (copy)'; c.blocks.forEach(b => { b.id = uid(); b.items.forEach(it => it.id = uid()); }); S.plan.days.splice(i + 1, 0, c); remapDone(k => k > i ? k + 1 : k); save(); rerender(); },
+  pdDel: el => {
+    const i = +el.dataset.i;
+    if (S.plan.days.length <= 1) { toast('A plan needs at least one day'); return; }
+    if (S.active && S.active.ref === 'p' + i) { toast('Finish or discard the workout in progress first'); return; }
+    confirmSheet('Delete this day?', `Remove "${S.plan.days[i].name}" from your plan? Your history is kept.`, 'Delete', () => {
+      S.plan.days.splice(i, 1); remapDone(k => k === i ? -1 : k > i ? k - 1 : k);
+      if (S.active && S.active.ref[0] === 'p') { const a = +S.active.ref.slice(1); if (a > i) { S.active.ref = 'p' + (a - 1); S.active.src = S.active.ref; S.active.day = a - 1; } }
+      save(); rerender();
+    }, true);
+  },
+  pdReplace: el => dayPicker('replace', +el.dataset.i),
+  pdAdd: () => dayPicker('add', S.plan.days.length),
+  pdPick: el => {
+    const { mode, src } = el.dataset, i = +el.dataset.i, P = S.plan;
+    if (mode === 'replace' && S.active && S.active.ref === 'p' + i) { toast('Finish or discard the workout in progress first'); return; }
+    let day;
+    if (src === 'blank') day = blankDay(i);
+    else if (src[0] === 't') { day = clone(S.saved.find(t => t.id === src.slice(1))); day.id = uid(); }
+    else if (src[0] === 'r') day = generateQuick({ focus: src.slice(1), mins: S.settings.length, energy: 'normal', eq: S.settings.eq.slice() });
+    else if (src[0] === 'g') { const used = new Set(P.days.flatMap(d => d.blocks.flatMap(b => b.items.map(x => x.ex)))); day = genDay(src.slice(1), ctxFor(planSettings(), (Math.random() * 2 ** 31) | 0, used)); }
+    if (!day) return;
+    delete day.q; // plan days aren't one-offs
+    if (mode === 'add') P.days.push(day);
+    else { P.days[i] = day; remapDone(k => k === i ? -1 : k); }
+    save(); onSheetClose = null; closeSheet(); rerender(); toast(mode === 'add' ? 'Day added' : 'Day replaced');
   },
 
   // navigation & quick picks
@@ -123,12 +161,14 @@ const ACT = {
 
   // setup
   set: el => { const k = el.dataset.k, v = el.dataset.v; draft[k] = ['days', 'length'].includes(k) ? +v : v; VIEWS.setup(); },
+  eqPreset: el => { const v = el.dataset.v; draft.eq = v === 'gym' ? EQ.map(e => e[0]) : v === 'home' ? ['kb', 'band'] : []; if (v === 'gym' && draft.program === 'athletic' && draft.style === 'mixed') draft.style = 'gym'; VIEWS.setup(); },
+  qeqPreset: el => { const v = el.dataset.v; S.ui.quick.eq = v === 'gym' ? EQ.map(e => e[0]) : v === 'mine' ? S.settings.eq.slice() : []; save(); rerender(); },
   eq: el => { const k = el.dataset.k; draft.eq = draft.eq.includes(k) ? draft.eq.filter(x => x !== k) : [...draft.eq, k]; VIEWS.setup(); },
   tog: el => { const k = el.dataset.k; draft[k] = !draft[k]; VIEWS.setup(); },
   cancelSetup: () => { draft = null; },
   genPlan: () => {
-    const go = () => { S.settings = draft; draft = null; S.plan = generatePlan(S.settings); S.active = null; save(); go('#/today'); toast('Plan ready — week 1'); };
-    if (S.plan) confirmSheet('Generate a new plan?', 'This replaces your current plan and starts again at week 1. Your history is kept.', 'Generate', go); else go();
+    const doGen = () => { S.settings = draft; draft = null; S.plan = generatePlan(S.settings); S.active = null; save(); go('#/workouts'); toast('Plan ready — week 1'); };
+    if (S.plan) confirmSheet('Generate a new plan?', 'This replaces your current plan and starts again at week 1. Your history is kept.', 'Generate', doGen); else doGen();
   },
   saveSettings: () => { S.settings = draft; draft = null; save(); go('#/' + lastMain); toast('Settings saved'); },
   export: () => {

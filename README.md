@@ -27,6 +27,7 @@ python3 -m http.server 8000   # then open http://localhost:8000
 - **6-week block:** weeks 1–2 *Re-entry* (RPE 6–7), weeks 3–5 *Build* (more sets and load, RPE 7–8), week 6 *Deload*. Exercises stay the same across the block; sets, reps and rest change each week.
 - **Every strength session:** warm-up → power (jumps / throws / ballistics) → A superset (main lower + upper) → B superset (single-leg/lateral + upper + core) → conditioning finisher → cool-down stretches. 30-min sessions drop the finisher; 60-min sessions add accessories and carries.
 - **Splits:** 2 days = Full Body A/B · 3 = Squat & Push / Hinge & Pull / Athletic Single-Leg · 4 adds Mobility & Recovery · 5 adds an Engine (conditioning) day.
+- **Programs:** Athletic S&C, Push / Pull / Legs, Upper / Lower, Full Body, or *Build my own* (blank days), 2–6 days a week. **Workouts → Edit plan** lets you rename, reorder, duplicate, delete or replace days, and add days from blank, My workouts or any focus. Exercises you add to a plan day get the weekly progression automatically.
 - **Style:** *Keep it simple*, *Kettlebell first*, *Classic gym* or *Mixed* weights which exercises get picked. Every exercise can be swapped for an alternative that fits your equipment.
 
 ## Layout
@@ -79,4 +80,4 @@ Everything is stored in your browser's localStorage on the device. Use **Export 
 
 ## Credits
 
-Exercise photos and base instructions: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense / public domain).
+Exercise photos (incl. machines, cables and isolation work) and base instructions: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense / public domain).

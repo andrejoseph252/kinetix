@@ -113,7 +113,7 @@ function routineHero(r, label) {
     <div class="row" style="margin-top:12px"><button class="btn cbtn grow" data-act="routineGo" data-id="${r.id}">${PLAY} Start</button><button class="btn ghost" data-act="routine" data-id="${r.id}">Preview</button></div>
   </div>`;
 }
-const QUICK_PICKS = [['control', 30], ['recovery', 20], ['strength', 45], ['engine', 20], ['kettlebell', 30], ['athletic', 45], ['upper', 30], ['lower', 30]];
+const QUICK_PICKS = [['control', 30], ['recovery', 20], ['strength', 45], ['engine', 20], ['push', 45], ['pull', 45], ['legs', 45], ['arms', 30], ['kettlebell', 30], ['athletic', 45]];
 function quickPicks() {
   const eq = S.ui.quick.eq || S.settings.eq;
   return `<div class="picks">${QUICK_PICKS.filter(([k]) => !RECIPES[k].needs || eq.includes(RECIPES[k].needs)).map(([k, m]) => { const R = RECIPES[k]; return `<button class="pick" data-act="qpick" data-k="${k}" data-m="${m}" style="--c:${cvar(R.cat)}"><b><span class="cdot"></span>${R.name}</b><span>${m} min</span></button>`; }).join('')}
@@ -158,7 +158,7 @@ VIEWS.workouts = () => {
       const w = P.week, ph_ = phase(w), days = P.days.map((d, i) => [d, i]).filter(([d]) => wfMatch(f, catOf(d)));
       if (days.length) {
         n += days.length;
-        html += `<div class="h2">Your plan</div>
+        html += `<div class="h2 row"><span class="grow">Your plan</span><a class="btn sm ghost" href="#/planedit">${ICON.edit} Edit plan</a></div>
         <div class="card phase">
           <div class="row" style="align-items:flex-start">
             <div class="grow"><div class="eyebrow">Week ${w} of ${BLOCK_WEEKS}</div><div class="wk" style="margin-top:6px">${ph_.name}</div><div class="muted small" style="margin-top:4px">Target effort RPE ${ph_.rpe}</div></div>
@@ -201,7 +201,8 @@ VIEWS.quick = () => {
     <div class="field"><div class="lab">Time</div>${seg('mins', [20, 30, 45, 60], ['20', '30', '45', '60 min'])}</div>
     <div class="field"><div class="lab">Energy today</div>${seg('energy', ['low', 'normal', 'high'], ['Low', 'Normal', 'High'])}<div class="muted small" style="margin-top:8px">${ENERGY[Q.energy][1]}</div></div>
     <div class="field"><div class="lab">Equipment today</div><div class="hint">Bodyweight is always included.</div>
-      <div class="chips">${EQ.map(([k, l]) => `<button class="chip ${Q.eq.includes(k) ? 'on' : ''}" data-act="qeq" data-k="${k}">${l}</button>`).join('')}</div></div>
+      <div class="chips">${EQ.map(([k, l]) => `<button class="chip ${Q.eq.includes(k) ? 'on' : ''}" data-act="qeq" data-k="${k}">${l}</button>`).join('')}</div>
+      <div class="row" style="margin-top:10px"><button class="btn sm ghost" data-act="qeqPreset" data-v="gym">At the gym</button><button class="btn sm ghost" data-act="qeqPreset" data-v="mine">My usual</button><button class="btn sm ghost" data-act="qeqPreset" data-v="none">Nothing</button></div></div>
     <button class="btn pri block" style="margin-top:24px;height:52px" data-act="qgen">Generate session</button>
     <div class="muted small" style="text-align:center;margin-top:8px">You can swap, edit, add or remove anything afterwards.</div>`;
 };
@@ -258,15 +259,64 @@ function itemRow(ref, b, it, ii, w, big) {
 
 VIEWS.day = i => { go('#/s/p' + i, { replace: true }); };
 
+/* ---------- Plan editor: shape your week ---------- */
+VIEWS.planedit = () => {
+  const P = S.plan;
+  if (!P) { go('#/setup', { replace: true }); return; }
+  setTop(`<a class="icon-btn" href="#/workouts" data-nav="back" aria-label="Back">${ICON.back}</a><h1>Edit plan</h1>`);
+  const w = P.week;
+  $('#view').innerHTML = `
+    <p class="muted small" style="margin-top:0">Rename, reorder or swap any day. Tap a day to edit its exercises, sets and reps. Exercises you add to a plan day progress through the 6-week block automatically.</p>
+    <div class="pd-list">${P.days.map((d, i) => `<div class="pd" style="--c:${cvar(catOf(d))}">
+      <div class="pd-n">${i + 1}</div>
+      <div class="grow">
+        <input type="text" value="${esc(d.name)}" data-pd="name" data-i="${i}" aria-label="Day ${i + 1} name">
+        <div class="muted small" style="margin-top:6px">${estimate(d, w)} min, ${d.blocks.reduce((a, b) => a + b.items.length, 0)} exercises${P.done['w' + w + 'd' + i] ? ', done this week' : ''}</div>
+        <div class="row" style="margin-top:10px;gap:6px;flex-wrap:wrap">
+          <a class="btn sm" href="#/s/p${i}">${ICON.edit} Edit day</a>
+          <button class="btn sm ghost" data-act="pdReplace" data-i="${i}">${ICON.swap} Replace</button>
+        </div>
+      </div>
+      <div class="pd-tools">
+        <button class="icon-btn sm" data-act="pdMove" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled style="opacity:.3"' : ''} aria-label="Move up">${ICON.up}</button>
+        <button class="icon-btn sm" data-act="pdMove" data-i="${i}" data-d="1" ${i === P.days.length - 1 ? 'disabled style="opacity:.3"' : ''} aria-label="Move down">${ICON.down}</button>
+        <button class="icon-btn sm" data-act="pdDup" data-i="${i}" aria-label="Duplicate">${ICON.copy}</button>
+        <button class="icon-btn sm" data-act="pdDel" data-i="${i}" aria-label="Delete">${ICON.trash}</button>
+      </div>
+    </div>`).join('')}</div>
+    <button class="btn pri block" style="margin-top:14px" data-act="pdAdd">${ICON.plus} Add a day</button>
+    <div class="muted small" style="margin-top:16px">Want a fresh start? <a href="#/setup" style="text-decoration:underline">Generate a new plan</a> — choose Push / Pull / Legs, Upper / Lower, Full Body, Athletic, or Build my own.</div>`;
+};
+function dayPicker(mode, i) {
+  const L = S.settings.length;
+  openSheet(`<h3>${mode === 'add' ? 'Add a day' : 'Replace day ' + (i + 1)}</h3>
+    <div class="muted small">Start blank, use one of your saved workouts, or generate one.</div>
+    <button class="btn block" style="margin-top:14px" data-act="pdPick" data-mode="${mode}" data-i="${i}" data-src="blank">${ICON.plus} Blank day — build it yourself</button>
+    ${S.saved.length ? `<div class="h2" style="font-size:20px;margin-top:22px">My workouts</div><div class="stack">${S.saved.map(t => `<button class="pick" style="--c:${cvar(catOf(t))};width:100%" data-act="pdPick" data-mode="${mode}" data-i="${i}" data-src="t${t.id}"><b>${esc(t.name)}</b><span>${estimate(t)} min</span></button>`).join('')}</div>` : ''}
+    <div class="h2" style="font-size:20px;margin-top:22px">Generate · ${L} min</div>
+    <div class="picks">${Object.entries(RECIPES).filter(([, r]) => !r.needs || S.settings.eq.includes(r.needs)).map(([k, r]) => `<button class="pick" style="--c:${cvar(r.cat)}" data-act="pdPick" data-mode="${mode}" data-i="${i}" data-src="r${k}"><b>${r.name}</b><span>${L} min</span></button>`).join('')}
+      ${Object.keys(GYM).map(k => `<button class="pick" style="--c:var(--c-strength)" data-act="pdPick" data-mode="${mode}" data-i="${i}" data-src="g${k}"><b>${GYM[k].name}</b><span>gym</span></button>`).join('')}</div>`);
+}
+// keep "done" ticks attached to the right day when days move
+function remapDone(map) {
+  const P = S.plan, nd = {};
+  for (const k in P.done) { const m = /^w(\d+)d(\d+)$/.exec(k); if (!m) continue; const j = map(+m[2]); if (j >= 0) nd['w' + m[1] + 'd' + j] = P.done[k]; }
+  P.done = nd;
+}
+
 /* ---------- Setup ---------- */
 let draft = null;
 VIEWS.setup = () => {
   if (!draft) draft = JSON.parse(JSON.stringify(S.settings));
   setTop(`${S.plan ? `<a class="icon-btn" href="#/${lastMain}" data-nav="back" aria-label="Back" data-act="cancelSetup">${ICON.back}</a>` : ''}<h1>${S.plan ? 'Settings' : 'Build your plan'}</h1>`);
   const seg = (k, vals, labels) => `<div class="seg">${vals.map((v, i) => `<button class="${draft[k] === v ? 'on' : ''}" data-act="set" data-k="${k}" data-v="${v}">${labels ? labels[i] : v}</button>`).join('')}</div>`;
-  const splitDesc = { 2: 'Full Body A / B', 3: 'Squat & Push · Hinge & Pull · Athletic Single-Leg', 4: '3 strength days + Mobility & Recovery', 5: '3 strength + Mobility + Engine (conditioning)' };
+  const prog = draft.program || 'athletic';
+  const KEYNAME = k => { const b = k.replace(/[0-9]+$/, ''); return ({ F1: 'Full Body A', F2: 'Full Body B', S1: 'Squat & Push', S2: 'Hinge & Pull', S3: 'Athletic Single-Leg', MOB: 'Mobility', COND: 'Conditioning' })[k] || (GYM[b] ? GYM[b].name : k); };
+  const split = prog === 'custom' ? `${draft.days} blank days for you to build` : ((PROGRAM_DAYS[prog] || PROGRAM_DAYS.athletic)[draft.days] || []).map(KEYNAME).join(', ');
   $('#view').innerHTML = `
-    <div class="field"><div class="lab">Days per week</div>${seg('days', [2, 3, 4, 5])}<div class="muted small" style="margin-top:8px">${splitDesc[draft.days]}</div></div>
+    <div class="field" style="margin-top:4px"><div class="lab">Program</div>
+      <div class="opt-grid">${Object.entries(PROGRAMS).map(([k, [t, d]]) => `<button class="opt ${prog === k ? 'on' : ''}" data-act="set" data-k="program" data-v="${k}"><b>${t}</b><span>${d}</span></button>`).join('')}</div></div>
+    <div class="field"><div class="lab">Days per week</div>${seg('days', [2, 3, 4, 5, 6])}<div class="muted small" style="margin-top:8px">${esc(split)}</div></div>
     <div class="field"><div class="lab">Session length</div>${seg('length', [30, 45, 60], ['30 min', '45 min', '60 min'])}</div>
     <div class="field"><div class="lab">Where you're at</div>${seg('level', ['returning', 'regular'], ['Getting back into it', 'Training regularly'])}</div>
     <div class="field"><div class="lab">Exercise style</div>
@@ -274,6 +324,7 @@ VIEWS.setup = () => {
     </div>
     <div class="field"><div class="lab">Equipment you have</div><div class="hint">Bodyweight is always included.</div>
       <div class="chips">${EQ.map(([k, l]) => `<button class="chip ${draft.eq.includes(k) ? 'on' : ''}" data-act="eq" data-k="${k}">${l}</button>`).join('')}</div>
+      <div class="row" style="margin-top:10px"><button class="btn sm ghost" data-act="eqPreset" data-v="gym">Full gym</button><button class="btn sm ghost" data-act="eqPreset" data-v="home">Home: kettlebell & bands</button><button class="btn sm ghost" data-act="eqPreset" data-v="none">None</button></div>
     </div>
     <div class="field"><div class="lab">Units</div>${seg('units', ['kg', 'lb'])}</div>
     <div class="field"><div class="lab">Timer feedback</div>
@@ -375,18 +426,23 @@ VIEWS.timer = () => {
 function fmtSw(ms) { const cs = Math.floor(ms / 10) % 100; return fmtLong(ms / 1000) + '.' + String(cs).padStart(2, '0'); }
 
 /* ---------- Library ---------- */
+const has_ = (e, ...t) => t.some(x => e.tags.includes(x));
 const LIB_FILTERS = [
   ['all', 'All', () => true],
+  ['chest', 'Chest', e => has_(e, 'chest') && !has_(e, 'stretch', 'prep', 'mobility')],
+  ['back', 'Back', e => has_(e, 'hpull', 'vpull', 'lats') && !has_(e, 'stretch', 'smr')],
+  ['shoulders', 'Shoulders', e => (has_(e, 'vpush') || (has_(e, 'shoulders') && has_(e, 'iso', 'prehab'))) && !has_(e, 'stretch')],
+  ['arms', 'Arms', e => has_(e, 'arms', 'biceps', 'triceps')],
+  ['legs', 'Legs', e => has_(e, 'squat', 'hinge', 'single', 'lateral') || (has_(e, 'iso') && has_(e, 'quads', 'hams', 'glutes', 'calves', 'groin'))],
+  ['core', 'Core & carry', e => has_(e, 'core', 'carry')],
+  ['machine', 'Machines & cables', e => e.eq.includes('machine') || e.eq.includes('cable')],
   ['kb', 'Kettlebell', e => e.eq.includes('kb')],
   ['bw', 'Bodyweight', e => e.eq.includes('bw') && !e.req.length],
-  ['mobility', 'Mobility', e => e.tags.includes('mobility') || e.tags.includes('prep')],
-  ['stretch', 'Stretch', e => e.tags.includes('stretch')],
-  ['power', 'Power', e => e.tags.includes('power')],
-  ['lower', 'Lower', e => ['squat', 'hinge', 'single', 'lateral'].some(t => e.tags.includes(t))],
-  ['upper', 'Upper', e => ['hpush', 'vpush', 'hpull', 'vpull'].some(t => e.tags.includes(t))],
-  ['core', 'Core & carry', e => e.tags.includes('core') || e.tags.includes('carry')],
-  ['cond', 'Conditioning', e => e.tags.includes('cond')],
-  ['smr', 'Foam roll', e => e.tags.includes('smr')],
+  ['power', 'Power', e => has_(e, 'power')],
+  ['mobility', 'Mobility', e => has_(e, 'mobility', 'prep', 'cars', 'lmob')],
+  ['stretch', 'Stretch', e => has_(e, 'stretch')],
+  ['cond', 'Cardio & conditioning', e => has_(e, 'cond')],
+  ['smr', 'Foam roll', e => has_(e, 'smr')],
 ];
 VIEWS.library = () => {
   setTop(`<h1>Library</h1><span class="sub">${EX.length} moves</span>`);

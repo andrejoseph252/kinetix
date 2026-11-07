@@ -12,12 +12,12 @@ function ctxFor(settings, seed, used) {
   return {
     settings, eq, has, used: used || new Set(),
     rnd: seed == null ? () => 0.5 : rng(seed),
-    anyLoad: ['kb', 'db', 'bb', 'cable'].some(q => eq.includes(q)),
+    anyLoad: ['kb', 'db', 'bb', 'cable', 'machine'].some(q => eq.includes(q)),
     returning: settings.level === 'returning',
   };
 }
 function avail(ex, ctx) { return ex.eq.some(ctx.has) && ex.req.every(ctx.has); }
-function loadable(ex, ctx) { return ex.eq.some(q => ['kb', 'db', 'bb', 'cable', 'band', 'mb'].includes(q) && ctx.has(q)); }
+function loadable(ex, ctx) { return ex.eq.some(q => ['kb', 'db', 'bb', 'cable', 'band', 'mb', 'machine'].includes(q) && ctx.has(q)); }
 
 function score(ex, role, ctx, slot) {
   let s = 1 + ctx.rnd() * 0.9;
@@ -26,7 +26,7 @@ function score(ex, role, ctx, slot) {
   const heavy = ex.eq.some(q => (q === 'bb' || q === 'db') && ctx.has(q));
   if (st === 'simple') s += t === 1 ? 1.2 : t === 2 ? 0.2 : -2.5;
   if (st === 'kettlebell') { if (kb) s += 1.5; if (t === 3) s -= 0.6; }
-  if (st === 'gym') { if (heavy) s += 1.3; if (ex.eq.includes('bb') && ctx.has('bb')) s += 0.4; if (t === 3) s -= 0.3; }
+  if (st === 'gym') { if (ex.eq.includes('machine') && ctx.has('machine')) s += 0.9; if (heavy) s += 1.3; if (ex.eq.includes('bb') && ctx.has('bb')) s += 0.4; if (t === 3) s -= 0.3; }
   if (st === 'mixed') { s += t === 1 ? 0.4 : t === 2 ? 0.5 : -0.6; if (kb) s += 0.3; if (heavy) s += 0.3; }
   if (ctx.returning && t === 3) s -= 1.4;
   if ((role === 'main' || role === 'sec') && ctx.anyLoad && !loadable(ex, ctx)) s -= 0.9;
@@ -34,6 +34,8 @@ function score(ex, role, ctx, slot) {
   if (role === 'cond' && !ex.eq.some(q => q !== 'bb' && ctx.has(q))) s -= 1.5;
   if (!ex.img.length) s -= 0.6; // prefer moves with reference photos when it's close
   if (ctx.used.has(ex.id)) s -= (role === 'main' || role === 'sec') ? 0.8 : 3; // repeat main lifts across the week is fine
+  if ((role === 'main' || role === 'sec') && (ex.tags.includes('iso') || ex.tags.includes('arms'))) s -= 2;
+  if (ctx.settings.style !== 'gym' && ex.eq.length === 1 && ex.eq[0] === 'machine' && (role === 'main' || role === 'sec')) s -= 0.4;
   if ((role === 'main' || role === 'sec') && ex.tags.includes('prehab')) s -= 1.2;
   if (slot && slot.bonus) s += ex.tags.filter(x => slot.bonus.includes(x)).length * 0.9;
   if (ctx.regions) s += ex.tags.filter(x => ctx.regions.includes(x)).length * (ctx.regionW || 0.6);
@@ -80,8 +82,73 @@ const SL = {
   core: { p: ['core'], not: ['cond', 'hpush', 'vpush', 'hpull', 'single'] },
   carry: { p: ['carry', 'core'], not: ['cond', 'hpush', 'vpush', 'hpull', 'single'] },
   prehab: { p: ['prehab'] },
+  // standard gym accessories
+  isoChest: { p: ['iso', 'hpush'], any: ['chest'], not: ['power', 'arms', 'mobility', 'core'], bonus: ['iso'] },
+  isoShoulder: { p: ['iso', 'vpush'], any: ['shoulders'], not: ['power', 'prehab', 'back', 'arms', 'mobility', 'core', 'control'], bonus: ['iso'] },
+  rearDelt: { p: ['prehab', 'iso', 'hpull'], any: ['shoulders', 'back'], not: ['power', 'arms'], bonus: ['prehab', 'iso'] },
+  biceps: { p: ['arms'], any: ['biceps'] },
+  triceps: { p: ['arms'], any: ['triceps'], bonus: ['iso'] },
+  quads: { p: ['iso', 'squat', 'single'], any: ['quads'], not: ['power', 'mobility', 'prep'], bonus: ['iso'] },
+  hams: { p: ['iso', 'hinge'], any: ['hams'], not: ['power', 'mobility', 'prep'], bonus: ['iso'] },
+  glutes: { p: ['iso', 'hinge'], any: ['glutes'], not: ['power', 'mobility', 'prep'], bonus: ['iso'] },
+  calves: { p: ['iso', 'prehab'], any: ['calves'], not: ['stretch', 'smr', 'power'] },
+  lats: { p: ['vpull', 'iso'], any: ['lats'], not: ['power', 'stretch', 'mobility'] },
+  row: { p: ['hpull'], not: ['prehab', 'power', 'core'] },
+  bigSquat: { p: ['squat'], not: ['power', 'cond', 'mobility', 'single', 'prep', 'lateral'] },
 };
 const sl = (k, extra) => Object.assign({}, SL[k], extra || {});
+
+// Classic gym splits: one heavy compound, a compound pair, then accessories & arms.
+const GYM = {
+  PUSH: { name: 'Push', focus: 'Chest, shoulders, triceps', regions: ['chest', 'shoulders', 'tspine'],
+    A: [['hpush', 'main']], B: [['vpush', 'sec'], ['hpush', 'sec', { bonus: ['chest'] }]], C: [['isoChest', 'acc'], ['isoShoulder', 'acc']], D: [['triceps', 'acc'], ['triceps', 'acc', { bonus: ['hpush'] }]] },
+  PULL: { name: 'Pull', focus: 'Back, rear delts, biceps', regions: ['lats', 'back', 'tspine', 'shoulders'],
+    A: [['vpull', 'main']], B: [['row', 'sec'], ['lats', 'sec']], C: [['rearDelt', 'acc'], ['hams', 'acc', { bonus: ['back'] }]], D: [['biceps', 'acc'], ['biceps', 'acc']] },
+  LEGS: { name: 'Legs', focus: 'Quads, hamstrings, glutes, calves', regions: ['hips', 'quads', 'hams', 'ankles'],
+    A: [['bigSquat', 'main']], B: [['hinge', 'sec'], ['single', 'sec']], C: [['quads', 'acc'], ['hams', 'acc']], D: [['calves', 'acc'], ['core', 'acc']] },
+  UPPER: { name: 'Upper', focus: 'Push, pull, shoulders, arms', regions: ['chest', 'shoulders', 'lats', 'tspine'],
+    A: [['hpush', 'main'], ['row', 'main']], B: [['vpush', 'sec'], ['vpull', 'sec']], C: [['isoShoulder', 'acc'], ['rearDelt', 'acc']], D: [['biceps', 'acc'], ['triceps', 'acc']] },
+  LOWER: { name: 'Lower', focus: 'Squat, hinge, legs, core', regions: ['hips', 'quads', 'hams', 'ankles'],
+    A: [['bigSquat', 'main']], B: [['hinge', 'main'], ['single', 'sec']], C: [['quads', 'acc'], ['hams', 'acc']], D: [['calves', 'acc'], ['core', 'acc']] },
+  FULL: { name: 'Full Body', focus: 'Squat, press, hinge, pull, arms', regions: ['hips', 'shoulders', 'hams', 'chest'],
+    A: [['bigSquat', 'main'], ['hpush', 'main']], B: [['hinge', 'sec'], ['vpull', 'sec']], C: [['isoShoulder', 'acc'], ['glutes', 'acc']], D: [['biceps', 'acc'], ['triceps', 'acc']] },
+};
+function genGymDay(key, ctx) {
+  const base = key.replace(/[0-9]+$/, ''), T = GYM[base], L = ctx.settings.length, dayUsed = new Set();
+  ctx.regions = T.regions;
+  const blocks = [{ kind: 'prep', title: 'Warm-up', items: pickMany(L >= 45 ? 4 : 3, ['prep'], 'prep', ctx, dayUsed, { not: ['cond', 'power'], maxTier: 2 }) }];
+  ctx.regions = null;
+  const mk = arr => arr.map(([k, role, ex]) => pick(sl(k, ex), role, ctx, dayUsed)).filter(Boolean);
+  blocks.push({ kind: 'strength', key: 'A', title: T.A.length > 1 ? 'Main lifts' : 'Main lift', items: mk(T.A) });
+  blocks.push({ kind: 'strength', key: 'B', title: 'Strength', items: mk(L >= 45 ? T.B : T.B.slice(0, 1)) });
+  if (L >= 30) blocks.push({ kind: 'strength', key: 'C', title: 'Accessories', items: mk(L >= 45 ? T.C : T.C.slice(0, 1)), rest: 60, restItem: 0 });
+  if (L >= 45) blocks.push({ kind: 'strength', key: 'D', title: base === 'LEGS' || base === 'LOWER' ? 'Calves & core' : 'Arms', items: mk(L >= 60 ? T.D : T.D.slice(0, 1).concat(T.D.slice(1, 2))), rest: 60, restItem: 0 });
+  ctx.regions = T.regions;
+  blocks.push({ kind: 'stretch', title: 'Cool-down', items: pickMany(L >= 60 ? 3 : 2, ['stretch'], 'stretch', ctx, dayUsed) });
+  ctx.regions = null;
+  const n = key.match(/[0-9]+$/);
+  return { key, cat: 'strength', name: T.name + (n ? ' ' + 'AB'[+n[0] - 1] : ''), focus: T.focus, blocks: blocks.filter(b => b.items.length) };
+}
+// Program types → day keys by days/week
+const PROGRAMS = {
+  athletic: ['Athletic S&C', 'Power, strength, conditioning and mobility'],
+  ppl: ['Push / Pull / Legs', 'The classic bodybuilding-style split'],
+  ul: ['Upper / Lower', 'Simple, balanced and easy to recover from'],
+  full: ['Full Body', 'Everything, every session — great at 2–3 days'],
+  custom: ['Build my own', 'Start with blank days and design every session'],
+};
+const PROGRAM_DAYS = {
+  athletic: { 2: ['F1', 'F2'], 3: ['S1', 'S2', 'S3'], 4: ['S1', 'S2', 'MOB', 'S3'], 5: ['S1', 'S2', 'MOB', 'S3', 'COND'], 6: ['S1', 'S2', 'MOB', 'S3', 'COND', 'MOB'] },
+  ppl: { 2: ['UPPER', 'LOWER'], 3: ['PUSH', 'PULL', 'LEGS'], 4: ['PUSH', 'PULL', 'LEGS', 'MOB'], 5: ['PUSH', 'PULL', 'LEGS', 'UPPER', 'LOWER'], 6: ['PUSH1', 'PULL1', 'LEGS1', 'PUSH2', 'PULL2', 'LEGS2'] },
+  ul: { 2: ['UPPER', 'LOWER'], 3: ['UPPER', 'LOWER', 'FULL'], 4: ['UPPER1', 'LOWER1', 'UPPER2', 'LOWER2'], 5: ['UPPER1', 'LOWER1', 'MOB', 'UPPER2', 'LOWER2'], 6: ['UPPER1', 'LOWER1', 'COND', 'UPPER2', 'LOWER2', 'MOB'] },
+  full: { 2: ['FULL1', 'FULL2'], 3: ['FULL1', 'FULL2', 'FULL3'], 4: ['FULL1', 'FULL2', 'MOB', 'FULL3'], 5: ['FULL1', 'FULL2', 'MOB', 'FULL3', 'COND'], 6: ['FULL1', 'FULL2', 'MOB', 'FULL3', 'COND', 'MOB'] },
+};
+function blankDay(i) {
+  return normSess({ id: uid(), cat: 'custom', name: 'Day ' + (i + 1), focus: '', blocks: [
+    { title: 'Warm-up', kind: 'prep', fmt: 'flow', rounds: 1, items: [] },
+    { title: 'Main', key: 'A', kind: 'strength', fmt: 'sets', items: [] },
+  ] });
+}
 
 // Strength day templates: power, A superset (main), B superset/triplet (sec + core), C accessories (60 min)
 const DAYS = {
@@ -189,6 +256,7 @@ function genCondDay(ctx) {
 function genDay(key, ctx) {
   if (key === 'MOB') return normSess(genMobilityDay(ctx));
   if (key === 'COND') return normSess(genCondDay(ctx));
+  if (GYM[key.replace(/[0-9]+$/, '')]) return normSess(genGymDay(key, ctx));
   return normSess(genStrengthDay(key, ctx));
 }
 // Every session = { id, name, focus, blocks: [{ id, title, fmt, rounds, rest, restItem, work, off, mins, note, items: [{ id, ex, role?, sets, n, unit, side, hold, tempo, note }] }] }
@@ -205,10 +273,17 @@ function normBlock(b) {
   return b;
 }
 function normSess(s) { if (!s.id) s.id = uid(); s.blocks.forEach(normBlock); return s; }
+// gym-style programs lean on barbells, dumbbells and machines unless you picked a style
+const planSettings = (settings = S.settings) => ['ppl', 'ul', 'full'].includes(settings.program) && settings.style === 'mixed' ? Object.assign({}, settings, { style: 'gym' }) : settings;
 function generatePlan(settings) {
   const seed = (Math.random() * 2 ** 31) | 0;
-  const ctx = ctxFor(settings, seed);
-  const days = SPLITS[settings.days].map(k => genDay(k, ctx));
+  const prog0 = settings.program || 'athletic';
+  const ctx = ctxFor(planSettings(settings), seed);
+  const prog = settings.program || 'athletic';
+  const days = prog === 'custom' ? Array.from({ length: settings.days }, (_, i) => blankDay(i))
+    : ((PROGRAM_DAYS[prog] || PROGRAM_DAYS.athletic)[settings.days] || PROGRAM_DAYS.athletic[3]).map(k => genDay(k, ctx));
+  // FULL1/2/3 → Full Body A/B/C
+  days.forEach(d => { const m = /^FULL([0-9])$/.exec(d.key || ''); if (m) d.name = 'Full Body ' + 'ABC'[+m[1] - 1]; });
   return { id: uid(), created: new Date().toISOString(), seed, week: 1, days, done: {} };
 }
 
@@ -296,7 +371,7 @@ function blockDesc(b, w) {
     default: return clockTxt(b);
   }
 }
-const loadEx = ex => ex.eq.some(q => ['kb', 'db', 'bb', 'cable', 'mb'].includes(q));
+const loadEx = ex => ex.eq.some(q => ['kb', 'db', 'bb', 'cable', 'mb', 'machine'].includes(q));
 // rough seconds per rep, so slow control work isn't estimated like a squat
 function repSecs(ex) {
   if (!ex) return 3.5;
@@ -375,7 +450,9 @@ const GB = {
   },
   sets(ctx, used, o, Q) {
     const items = o.slots.map(([k, role, extra]) => pick(sl(k, extra), role, ctx, used)).filter(Boolean).map(it => fixRx(it, Q.wk));
-    return { title: o.title || 'Strength', key: o.key, kind: 'strength', fmt: 'sets', items };
+    const b = { title: o.title || 'Strength', key: o.key, kind: 'strength', fmt: 'sets', items };
+    if (o.rest != null) { b.rest = o.rest; b.restItem = o.restItem || 0; }
+    return b;
   },
   circuit(ctx, used, o, Q) {
     const items = o.slots.filter(Boolean).map(sl_ => {
@@ -508,6 +585,41 @@ const RECIPES = {
       Q.L >= 45 && ['sets', { key: 'C', title: 'Shoulders & core', slots: [['prehab', 'acc'], ['core', 'acc']] }],
       ['holds', { n: 3, regions: ['chest', 'lats', 'shoulders', 'tspine'] }],
     ] },
+  push: { cat: 'strength', name: GYM.PUSH.name, blurb: GYM.PUSH.focus, gym: true,
+    build: Q => { const T = GYM.PUSH; return [
+      ['warm', { regions: T.regions }],
+      ['sets', { key: 'A', title: T.A.length > 1 ? 'Main lifts' : 'Main lift', slots: T.A }],
+      ['sets', { key: 'B', slots: Q.L >= 45 ? T.B : T.B.slice(0, 1) }],
+      Q.L >= 30 && ['sets', { key: 'C', title: 'Accessories', slots: Q.L >= 45 ? T.C : T.C.slice(0, 1), rest: 60 }],
+      Q.L >= 45 && ['sets', { key: 'D', title: 'Arms', slots: T.D, rest: 60 }],
+      ['holds', { regions: T.regions, n: 2 }],
+    ]; } },
+  pull: { cat: 'strength', name: GYM.PULL.name, blurb: GYM.PULL.focus, gym: true,
+    build: Q => { const T = GYM.PULL; return [
+      ['warm', { regions: T.regions }],
+      ['sets', { key: 'A', title: T.A.length > 1 ? 'Main lifts' : 'Main lift', slots: T.A }],
+      ['sets', { key: 'B', slots: Q.L >= 45 ? T.B : T.B.slice(0, 1) }],
+      Q.L >= 30 && ['sets', { key: 'C', title: 'Accessories', slots: Q.L >= 45 ? T.C : T.C.slice(0, 1), rest: 60 }],
+      Q.L >= 45 && ['sets', { key: 'D', title: 'Arms', slots: T.D, rest: 60 }],
+      ['holds', { regions: T.regions, n: 2 }],
+    ]; } },
+  legs: { cat: 'strength', name: GYM.LEGS.name, blurb: GYM.LEGS.focus, gym: true,
+    build: Q => { const T = GYM.LEGS; return [
+      ['warm', { regions: T.regions }],
+      ['sets', { key: 'A', title: T.A.length > 1 ? 'Main lifts' : 'Main lift', slots: T.A }],
+      ['sets', { key: 'B', slots: Q.L >= 45 ? T.B : T.B.slice(0, 1) }],
+      Q.L >= 30 && ['sets', { key: 'C', title: 'Accessories', slots: Q.L >= 45 ? T.C : T.C.slice(0, 1), rest: 60 }],
+      Q.L >= 45 && ['sets', { key: 'D', title: 'Calves & core', slots: T.D, rest: 60 }],
+      ['holds', { regions: T.regions, n: 2 }],
+    ]; } },
+  arms: { cat: 'strength', name: 'Arms & Shoulders', blurb: 'Biceps, triceps, delts — the pump day', gym: true,
+    build: Q => [
+      ['warm', { regions: ['shoulders', 'tspine', 'wrists'], n: 3 }],
+      ['sets', { key: 'A', title: 'Shoulders', slots: [['vpush', 'main'], ['isoShoulder', 'acc']] }],
+      ['sets', { key: 'B', title: 'Biceps & triceps', slots: [['biceps', 'acc'], ['triceps', 'acc']], rest: 60 }],
+      Q.L >= 45 && ['sets', { key: 'C', title: 'Finish', slots: [['biceps', 'acc'], ['triceps', 'acc'], ['rearDelt', 'acc']], rest: 60 }],
+      ['holds', { regions: ['chest', 'shoulders', 'lats'], n: 2 }],
+    ] },
   recovery: { cat: 'recovery', name: 'Recovery', blurb: 'Gentle flow, foam rolling, long holds, breathing',
     build: Q => [
       Q.L >= 45 && ['note', { mins: Q.L >= 60 ? 15 : 10 }],
@@ -526,6 +638,7 @@ function quickQ(opts, rnd) {
 function quickCtx(opts, seed, used) {
   const settings = Object.assign({}, S.settings, { eq: opts.eq || S.settings.eq, length: opts.mins });
   if (opts.focus === 'kettlebell') settings.style = 'kettlebell';
+  if (RECIPES[opts.focus] && RECIPES[opts.focus].gym) settings.style = 'gym';
   return ctxFor(settings, seed, used);
 }
 function generateQuick(opts) {

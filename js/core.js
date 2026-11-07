@@ -17,7 +17,7 @@ const now = () => Date.now();
 const EQ = [
   ['kb', 'Kettlebell'], ['db', 'Dumbbells'], ['bb', 'Barbell + rack'], ['bar', 'Pull-up bar'],
   ['band', 'Bands'], ['bench', 'Bench / box'], ['mb', 'Med ball'], ['roller', 'Foam roller'],
-  ['cable', 'Cable machine'], ['trx', 'Rings / TRX'], ['cardio', 'Rower / bike'],
+  ['cable', 'Cable machine'], ['machine', 'Gym machines'], ['trx', 'Rings / TRX'], ['cardio', 'Cardio machines'],
 ];
 const EQ_LABEL = Object.fromEntries([['bw', 'Bodyweight'], ...EQ]);
 const STYLES = {
@@ -33,8 +33,9 @@ const TAG_LABEL = {
   hips: 'Hips', hams: 'Hamstrings', quads: 'Quads', glutes: 'Glutes', groin: 'Groin', calves: 'Calves', ankles: 'Ankles',
   tspine: 'T-spine', shoulders: 'Shoulders', chest: 'Chest', lats: 'Lats', back: 'Back', wrists: 'Wrists',
   lmob: 'Loaded mobility', control: 'Control', cars: 'Joint CARs', breath: 'Breathing', custom: 'Custom',
+  iso: 'Isolation', arms: 'Arms', biceps: 'Biceps', triceps: 'Triceps',
 };
-const PATTERN_TAGS = ['prep', 'mobility', 'power', 'squat', 'hinge', 'single', 'lateral', 'hpush', 'vpush', 'hpull', 'vpull', 'core', 'carry', 'cond', 'stretch', 'smr', 'prehab', 'lmob', 'control', 'cars', 'breath'];
+const PATTERN_TAGS = ['iso', 'arms', 'prep', 'mobility', 'power', 'squat', 'hinge', 'single', 'lateral', 'hpush', 'vpush', 'hpull', 'vpull', 'core', 'carry', 'cond', 'stretch', 'smr', 'prehab', 'lmob', 'control', 'cars', 'breath'];
 // Block formats
 const FMT = {
   sets:      ['Sets', 'Straight sets or a superset — log weight & reps'],
@@ -84,6 +85,7 @@ const ICON = {
   plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
   up: '<svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>',
   down: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+  copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
   trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
   yt: '<svg viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="M10 9.2v5.6l4.8-2.8z" style="fill:currentColor;stroke:none"/></svg>',
   fig: '<svg viewBox="0 0 64 64"><circle cx="32" cy="11" r="6"/><path d="M32 18v20M32 38l-9 18M32 38l9 18M18 26l14-4 14 4"/></svg>',
@@ -93,7 +95,7 @@ const ICON = {
    State
    ========================================================= */
 const KEY = 'kinetix:v1';
-const DEFAULT_SETTINGS = { days: 3, length: 45, style: 'mixed', level: 'returning', eq: ['kb', 'band'], units: 'kg', sound: true, vibrate: true };
+const DEFAULT_SETTINGS = { program: 'athletic', days: 3, length: 45, style: 'mixed', level: 'returning', eq: ['kb', 'band'], units: 'kg', sound: true, vibrate: true };
 let S = (() => {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}

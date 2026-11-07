@@ -109,8 +109,15 @@ function renderPickList() {
 function addItem(id) {
   ED = { ref: PK.ref, bid: PK.bid };
   const { b } = edCtx(); if (!b) return;
-  const it = Object.assign({ id: uid(), ex: id }, baseRx(id));
-  if (b.fmt === 'sets') it.sets = 3;
+  let it;
+  if (PK.ref[0] === 'p' && b.fmt === 'sets' && parseDose(BY[id].dose).unit === 'reps') {
+    // plan day: give it a role so sets/reps progress through the 6-week block automatically
+    const ex = BY[id], small = ex.tags.includes('iso') || ex.tags.includes('arms') || ex.tags.includes('prehab') || ex.tags.includes('core');
+    it = { id: uid(), ex: id, role: small ? 'acc' : b.items.some(x => x.role === 'main') ? 'sec' : 'main' };
+  } else {
+    it = Object.assign({ id: uid(), ex: id }, baseRx(id));
+    if (b.fmt === 'sets') it.sets = 3;
+  }
   b.items.push(it); save();
   toast('Added ' + BY[id].name);
 }
@@ -169,6 +176,7 @@ document.addEventListener('input', e => {
   }
   if (t.id === 'wNotes' && S.active) { S.active.notes = t.value; save(); }
   if (t.id === 'pickq' && PK) { PK.q = t.value; renderPickList(); return; }
+  if (t.dataset.pd && S.plan) { const d = S.plan.days[+t.dataset.i]; if (d) { d.name = t.value; save(); } return; }
   if (t.dataset.se) { const sess = getSess(t.dataset.r); if (sess) { sess[t.dataset.se] = t.value; save(); } return; }
   if (t.dataset.ie && ED) { const { it } = edCtx(); if (it) { if (t.value.trim()) it[t.dataset.ie] = t.value; else delete it[t.dataset.ie]; save(); } return; }
   if (t.dataset.be && ED) { const { b } = edCtx(); if (b) { b[t.dataset.be] = t.value; save(); } return; }
