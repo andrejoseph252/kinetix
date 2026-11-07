@@ -138,8 +138,8 @@ addEventListener('touchcancel', edgeEnd, { passive: true });
 /* ---------- workout player: swipe between blocks ---------- */
 let PS = null;
 addEventListener('touchstart', e => {
-  if (e.touches.length !== 1 || OV !== 'player' || $('#sheet-root .sheet')) return;
-  if (e.target.closest('input, textarea, select, .chips.scroll, .holdbtn')) return;
+  if (e.touches.length !== 1 || (OV !== 'player' && OV !== 'guide') || $('#sheet-root .sheet')) return;
+  if (e.target.closest('input, textarea, select, .chips.scroll, .holdbtn, details')) return;
   const p = e.touches[0];
   PS = { x: p.clientX, y: p.clientY, on: false, dx: 0, lastX: p.clientX, lastT: e.timeStamp, v: 0, edge: p.clientX <= EDGE };
 }, { passive: true });
@@ -154,7 +154,7 @@ addEventListener('touchmove', e => {
   }
   if (e.cancelable) e.preventDefault();
   PS.v = (p.clientX - PS.lastX) / Math.max(1, e.timeStamp - PS.lastT); PS.lastX = p.clientX; PS.lastT = e.timeStamp;
-  const d = activeDay(), atStart = S.active.bi === 0, atEnd = d && S.active.bi === d.blocks.length - 1;
+  const G = OV === 'guide' && GD, d = G ? null : activeDay(), atStart = G ? GD.i === 0 : S.active.bi === 0, atEnd = G ? GD.i === GD.steps.length - 1 : d && S.active.bi === d.blocks.length - 1;
   PS.dx = dx > 0 && atStart && !PS.edge ? dx * .3 : dx < 0 && atEnd ? dx * .3 : dx; // rubber-band past the ends
   PS.el.style.transform = `translateX(${PS.dx}px)`;
 }, { passive: false });
@@ -162,17 +162,18 @@ function playerEnd() {
   if (!PS) return;
   const d = PS; PS = null;
   if (!d.on) return;
-  const day = activeDay(), A = S.active;
+  const G = OV === 'guide' && GD, day = G ? null : activeDay(), A = S.active;
   const far = Math.abs(d.dx) > 80 || (Math.abs(d.dx) > 30 && Math.abs(d.v) > .5);
+  const idx = G ? GD.i : A.bi, max = G ? GD.steps.length - 1 : day.blocks.length - 1;
   let dir = 0;
-  if (far && d.dx < 0 && A.bi < day.blocks.length - 1) dir = 1;
-  if (far && d.dx > 0) dir = A.bi > 0 ? -1 : (d.edge ? 'min' : 0);
+  if (far && d.dx < 0 && idx < max) dir = 1;
+  if (far && d.dx > 0) dir = idx > 0 ? -1 : (d.edge && !G ? 'min' : 0);
   d.el.classList.remove('edge-drag'); d.el.classList.add('edge-settle');
   if (!dir) { d.el.style.transform = ''; setTimeout(() => d.el.classList.remove('edge-settle'), 260); return; }
   d.el.style.transform = `translateX(${(d.dx < 0 ? -1 : 1) * innerWidth}px)`; d.el.style.opacity = '0';
   setTimeout(() => {
     if (dir === 'min') { ACT.minimize(); return; }
-    A.bi += dir; HOLD = null; save(); renderPlayer();
+    if (G) { GD.i += dir; renderGuide(); } else { A.bi += dir; HOLD = null; save(); renderPlayer(); }
     const nb = $('#overlay .ov-body'); if (nb) { nb.classList.add('slide-in-' + (dir > 0 ? 'r' : 'l')); }
   }, 150);
 }

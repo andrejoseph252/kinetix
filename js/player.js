@@ -219,6 +219,7 @@ function renderRun() {
     o.innerHTML = `<div class="ov-in"><div class="ov-top"><button class="icon-btn" data-act="runClose">${ICON.close}</button><div class="t"><b>${esc(RUN.title)}</b></div></div>
       <div style="text-align:center;padding-top:16vh"><div class="eyebrow" style="color:var(--acc)">Complete</div><div style="font-size:44px;font-weight:800;letter-spacing:-.03em;margin:8px 0">${fmtLong((now() - RUN.startTs) / 1000)}</div>
       <div class="muted">Good work. Breathe and recover.</div>
+      ${afterRoutine()}
       <button class="btn pri" style="margin-top:28px;min-width:200px" data-act="runClose">${RUN.onDone ? 'Back to workout' : 'Done'}</button></div></div>`;
     return;
   }
@@ -244,6 +245,14 @@ function renderRun() {
     </div>
     ${p.ex && p.kind === 'work' && nextWork && nextWork.ex && nextWork.ex !== p.ex ? `<div class="muted small" style="text-align:center;margin-top:16px">Next: ${esc(BY[nextWork.ex].name)}</div>` : ''}
   </div>`;
+}
+// gentle hand-offs into prayer after morning / evening routines
+function afterRoutine() {
+  if (!RUN || !RUN.rid || !S.faith) return '';
+  const o = S.faith.opts, on = id => (S.faith.practices.find(p => p.id === id) || {}).on && !isDone(id);
+  if (['bed', 'evening'].includes(RUN.rid) && o.examenAfterBed && on('examen')) return `<button class="btn block fbtn" style="margin-top:22px;max-width:320px;margin-left:auto;margin-right:auto" data-act="goExamen">Continue to the Examen</button>`;
+  if (['wake', 'quick5'].includes(RUN.rid) && o.offeringAfterWake && on('offering')) return `<button class="btn block fbtn" style="margin-top:22px;max-width:320px;margin-left:auto;margin-right:auto" data-act="goOffering">Pray the Morning Offering</button>`;
+  return '';
 }
 function renderFlow() {
   const o = $('#overlay'), p = RUN.phases[RUN.i], ex = BY[p.ex];
@@ -280,7 +289,7 @@ function openFlow(title, entries, rounds = 1, onDone, minSecs = 0, opts = {}) {
   });
   makeRun(phases, { title, mode: 'flow', onDone });
   RUN.flowIds = [...new Set(entries.map(e => e.ex))];
-  RUN.quiet = !!opts.quiet;
+  RUN.quiet = !!opts.quiet; RUN.rid = opts.rid || null;
   showOverlay('run'); runStart(); if (!RUN.quiet) sfx.tick(); renderRun();
 }
 function runAdvance() {

@@ -74,7 +74,7 @@ const ACT = {
     S.quick = generateQuick({ focus: k, mins: +el.dataset.m, energy: q.energy, eq });
     EDITING = false; save(); go('#/s/q');
   },
-  routineGo: el => { const r = ROUTINES.find(x => x.id === el.dataset.id); openFlow(r.name, routineEntries(r), 1, null, 0, { quiet: r.quiet }); },
+  routineGo: el => { const r = ROUTINES.find(x => x.id === el.dataset.id); openFlow(r.name, routineEntries(r), 1, null, 0, { quiet: r.quiet, rid: r.id }); },
   flowCustom: () => {
     const p = pendingFlow;
     const t = normSess({ id: uid(), cat: 'mobility', name: p.title, focus: 'Mobility routine', blocks: [{ title: 'Flow', kind: 'flow', fmt: 'flow', rounds: 1, items: p.entries.map(e => ({ id: uid(), ex: e.ex, sets: 1, n: e.r.n, unit: e.r.unit, side: e.r.side })) }] });
@@ -211,7 +211,7 @@ const ACT = {
     }
   },
   reflow: () => { const p = pendingFlow; showFlowPreview(p.title, buildRoutine(p.recipe, (Math.random() * 2 ** 31) | 0), p.recipe); },
-  startFlow: () => { const p = pendingFlow; closeSheet(); openFlow(p.title, p.entries, 1, null, 0, { quiet: p.recipe && p.recipe.quiet }); },
+  startFlow: () => { const p = pendingFlow; closeSheet(); openFlow(p.title, p.entries, 1, null, 0, { quiet: p.recipe && p.recipe.quiet, rid: p.recipe && p.recipe.id }); },
 
   // timer tab
   ttab: el => { S.ui.timerTab = el.dataset.k; save(); rerender(); },

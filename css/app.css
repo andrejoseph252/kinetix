@@ -653,3 +653,54 @@ input:focus, textarea:focus { border-color: var(--text); }
 .breathe { display: flex; align-items: center; gap: 12px; margin-top: 12px; color: var(--c-recovery); font-weight: 600; font-size: 14px; }
 .breathe i { width: 26px; height: 26px; border-radius: 50%; background: color-mix(in srgb, var(--c-recovery) 35%, transparent); border: 2px solid var(--c-recovery); animation: breathe 10s ease-in-out infinite; flex: none; }
 @keyframes breathe { 0% { transform: scale(.6) } 40% { transform: scale(1.15) } 100% { transform: scale(.6) } }
+
+/* ---------- Faith ---------- */
+:root { --c-faith: #e7c27d; }
+.tabbar a[data-tab=faith].on { color: var(--c-faith); }
+.tabbar a { font-size: 10.5px; }
+.litpill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: var(--text); }
+.litpill i { width: 10px; height: 10px; border-radius: 50%; background: var(--lc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lc) 25%, transparent); }
+.lithero { padding: 18px; border-radius: 22px; background: radial-gradient(130% 120% at 100% 0%, color-mix(in srgb, var(--lc) 22%, transparent), transparent 60%), var(--s1); }
+.lithero .title { font-size: 32px; }
+.faithcard { display: block; padding: 16px; position: relative; overflow: hidden; }
+.faithcard::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 4px; border-radius: 0 4px 4px 0; background: var(--c-faith); }
+.faithcard .feast { font-family: var(--display); font-weight: 800; font-size: 24px; margin-top: 6px; line-height: 1.05; }
+.fcount { font-family: var(--display); font-weight: 800; font-size: 20px; color: var(--muted); }
+.fcount b { font-size: 36px; color: var(--c-faith); }
+.btn.fbtn { background: var(--c-faith); color: #121826; }
+.resol { margin-top: 10px; font-size: 14px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--c-faith) 12%, transparent); }
+.pgroup { margin-top: 12px; }
+.pgroup .eyebrow { margin: 0 0 8px 2px; }
+.plist { background: var(--s1); border-radius: var(--r); overflow: hidden; }
+.prow { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; background: var(--s1); }
+.prow + .prow { box-shadow: 0 -1px 0 var(--hair); }
+.prow b { display: block; font-weight: 650; }
+.prow .grow > span, .prow .grow span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+.prow.done b { color: var(--muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--c-faith) 60%, transparent); }
+.prow.off b { color: var(--muted); }
+.pchk { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; flex: none; }
+.pchk svg { width: 18px; height: 18px; fill: none; stroke: transparent; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+.prow.done .pchk, .pchk.on { background: var(--c-faith); border-color: var(--c-faith); }
+.prow.done .pchk svg, .pchk.on svg { stroke: #121826; }
+.ilist { margin-top: 6px; }
+.irow { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--hair); }
+.irow small { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
+.answered { margin-top: 10px; color: var(--muted); font-size: 14px; }
+.answered summary { cursor: pointer; padding: 6px 0; }
+.ptext { font-size: 17px; line-height: 1.6; margin-top: 12px; }
+/* guided prayer */
+.guide .gtitle { font-family: var(--display); font-weight: 800; font-size: 38px; line-height: 1.02; letter-spacing: .01em; margin: 10px 0 12px; }
+.guide .lead { font-size: 17px; line-height: 1.55; margin: 0; }
+.guide .fruit { margin-top: 12px; font-size: 14px; color: var(--muted); }
+.guide .fruit b { color: var(--c-faith); }
+.guide .gints { margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--c-faith) 10%, var(--s1)); font-size: 15px; line-height: 1.6; }
+.guide .mpick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.prayers { display: grid; gap: 8px; }
+.prayers details { background: var(--s1); border-radius: 14px; padding: 0 14px; }
+.prayers summary { padding: 13px 0; font-weight: 650; cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+.prayers summary::-webkit-details-marker { display: none; }
+.prayers summary::after { content: "+"; color: var(--muted); font-weight: 400; }
+.prayers details[open] summary::after { content: "–"; }
+.prayers .times { color: var(--c-faith); font-family: var(--display); font-weight: 800; font-size: 18px; margin-left: 6px; }
+.prayers p { margin: 0 0 14px; line-height: 1.6; color: #e3dfd4; }
+.gnote { margin-top: 12px; height: 76px; }

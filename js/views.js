@@ -59,7 +59,7 @@ const dateTxt = iso => new Date(iso).toLocaleDateString(undefined, { weekday: 's
    ========================================================= */
 const VIEWS = {};
 let current = 'plan';
-const MAIN_TABS = ['today', 'workouts', 'mobility', 'library', 'progress'];
+const MAIN_TABS = ['today', 'workouts', 'mobility', 'faith', 'library', 'progress'];
 let lastMain = 'today';
 function route() {
   const parts = (location.hash || '#/today').slice(2).split('/');
@@ -106,7 +106,7 @@ function weekStrip() {
   const train = wk.filter(h => !isMob(histCat(h))).length;
   return `<div class="card">
     <div class="row"><div class="eyebrow grow">This week</div><span class="small muted"><b style="color:var(--c-strength)">${train}</b> training · <b style="color:var(--c-mobility)">${mobDays}</b> mobility day${mobDays === 1 ? '' : 's'}</span></div>
-    <div class="wkstrip">${days.map(d => { const k = d.toDateString(), cs = [...new Set(by[k] || [])]; return `<div class="${k === todayK ? 'today' : ''} ${d > nowT && k !== todayK ? 'future' : ''}"><span>${'MTWTFSS'[(d.getDay() + 6) % 7]}</span><b>${d.getDate()}</b><i>${cs.slice(0, 3).map(c => `<em style="background:${cvar(c)}"></em>`).join('')}</i></div>`; }).join('')}</div></div>`;
+    <div class="wkstrip">${days.map(d => { const k = d.toDateString(), cs = [...new Set(by[k] || [])]; return `<div class="${k === todayK ? 'today' : ''} ${d > nowT && k !== todayK ? 'future' : ''}"><span>${'MTWTFSS'[(d.getDay() + 6) % 7]}</span><b>${d.getDate()}</b><i>${cs.slice(0, 3).map(c => `<em style="background:${cvar(c)}"></em>`).join('')}${S.faith && faithDayCount(d) ? '<em style="background:var(--c-faith)"></em>' : ''}</i></div>`; }).join('')}</div></div>`;
 }
 const WHEN_CAT = { morning: 'athletic', anytime: 'mobility', evening: 'recovery', target: 'kb' };
 function routineHero(r, label) {
@@ -200,6 +200,7 @@ VIEWS.today = () => {
   $('#view').innerHTML = `${weekStrip()}
     ${activeCard()}
     ${trainedToday ? mobility + `<div class="h2">Up next</div>` + next : `<div class="h2" style="margin-top:22px">Up next</div>` + next + `<div style="margin-top:12px">${mobility}</div>`}
+    ${typeof faithTodayCard === 'function' && faithTodayCard() ? `<div style="margin-top:12px">${faithTodayCard()}</div>` : ''}
     ${else_}`;
 };
 
@@ -569,6 +570,7 @@ VIEWS.progress = () => {
     <div class="card" style="margin-top:10px"><div class="eyebrow">Minutes this week</div>
       ${Object.keys(mins).length ? Object.entries(mins).sort((a, b) => b[1] - a[1]).map(([c, m]) => `<div class="mbar" style="--c:${cvar(c)}"><span>${CAT[c] || c}</span><div><i style="width:${m / maxM * 100}%"></i></div><b class="num">${m}</b></div>`).join('') : '<div class="muted small" style="margin-top:8px">Nothing logged yet this week.</div>'}
     </div>
+    ${faithProgress()}
     <div class="card" style="margin-top:10px"><div class="eyebrow">Last 4 weeks</div>
       <div class="weekgrid" style="margin-top:8px">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(x => `<span class="muted" style="font-size:10px;text-align:center;font-weight:700">${x}</span>`).join('')}</div>
       <div class="weekgrid" style="margin-top:4px">${cells}</div>
@@ -579,6 +581,15 @@ VIEWS.progress = () => {
       ${h.ex && h.ex.length && h.kind !== 'mobility' ? `<div class="small muted" style="margin-top:6px">${h.ex.filter(e => e.sets.some(s => s.done)).length} exercises · ${h.ex.reduce((a, e) => a + e.sets.filter(s => s.done).length, 0)} sets</div>` : ''}
     </button>`; }).join('') : `<div class="empty">No sessions yet. Finish a workout or a mobility flow and it'll show up here.</div>`}`;
 };
+function faithProgress() {
+  if (!S.faith || !S.faith.practices.some(p => p.on)) return '';
+  const mon = mondayOf(new Date()), days = Array.from({ length: 7 }, (_, i) => addDays(mon, i)).filter(d => d <= new Date());
+  const counts = {}; days.forEach(d => Object.keys(S.faith.log[dk(d)] || {}).forEach(k => counts[k] = (counts[k] || 0) + 1));
+  const prayDays = days.filter(d => faithDayCount(d)).length;
+  const rows = S.faith.practices.filter(p => p.on && counts[p.id]).sort((a, b) => counts[b.id] - counts[a.id]);
+  return `<div class="card" style="margin-top:10px;--c:var(--c-faith)"><div class="row"><div class="eyebrow grow">Faith this week</div><span class="small muted"><b style="color:var(--c-faith)">${prayDays}</b> of ${days.length} days</span></div>
+    ${rows.length ? rows.map(p => `<div class="mbar"><span>${esc(p.name)}</span><div><i style="width:${counts[p.id] / days.length * 100}%"></i></div><b class="num">${counts[p.id]}</b></div>`).join('') : '<div class="muted small" style="margin-top:8px">Nothing ticked off yet this week.</div>'}</div>`;
+}
 VIEWS.log = () => go('#/progress', { replace: true });
 function openHist(id) {
   const h = S.history.find(x => x.id === id); if (!h) return;
