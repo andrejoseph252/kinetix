@@ -789,3 +789,14 @@ em.rub { font-style: italic; font-weight: 400; }
 .glow.fixed b { opacity: .18; }
 .prayers summary { display: flex; justify-content: flex-start; gap: 8px; align-items: baseline; }
 .prayers summary::after { margin-left: auto; }
+/* faith day switcher */
+.dayswitch { display: flex; align-items: center; gap: 10px; margin: 2px 0 12px; }
+.dayswitch .grow { text-align: center; }
+.dayswitch b { display: block; font-size: 16px; }
+.dayswitch span { font-size: 12.5px; color: var(--muted); }
+.pastnote { margin: -2px 0 12px; padding: 10px 12px; border-radius: 12px; font-size: 13.5px; background: color-mix(in srgb, var(--c-faith) 12%, var(--s1)); }
+.linkbtn { color: var(--c-faith); font-weight: 650; text-decoration: underline; margin-left: 4px; }
+.wkstrip > div[data-act] { cursor: pointer; }
+.wkstrip .sel { outline: 2px solid var(--c-faith); outline-offset: -2px; }
+/* tab bar sits lower; floating Start button clears it */
+.tabbar { bottom: max(6px, calc(var(--safe-b) - 12px)); }

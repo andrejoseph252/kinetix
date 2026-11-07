@@ -229,26 +229,31 @@ const FAITH_DEFAULT_PRACTICES = [
   f.opts = Object.assign({ showPrayers: false, examenAfterBed: true, offeringAfterWake: true, stMichaelAfterRosary: false }, f.opts || {});
 })();
 const F = () => S.faith;
-const isDone = (pid, d = new Date()) => !!(F().log[dk(d)] || {})[pid];
-function setDone(pid, on = true, d = new Date()) { const k = dk(d), L = F().log; L[k] = L[k] || {}; if (on) L[k][pid] = true; else delete L[k][pid]; save(); }
+// Late-night prayer counts for the day before: the "faith day" starts at opts.dayStart (default 3 am).
+function faithToday() { const h = F().opts.dayStart != null ? F().opts.dayStart : 3; const x = new Date(Date.now() - h * 3600e3); x.setHours(12, 0, 0, 0); return x; }
+let FSEL = null; // a day picked in the Faith tab (null = the current faith day)
+const fday = () => FSEL || faithToday();
+const isFaithToday = d => dk(d) === dk(faithToday());
+const isDone = (pid, d = fday()) => !!(F().log[dk(d)] || {})[pid];
+function setDone(pid, on = true, d = fday()) { const k = dk(d), L = F().log; L[k] = L[k] || {}; if (on) L[k][pid] = true; else delete L[k][pid]; save(); }
 function lastDone(pid) { const ks = Object.keys(F().log).filter(k => F().log[k][pid]).sort(); return ks.length ? ks[ks.length - 1] : null; }
-function practiceDue(p, d = new Date()) {
+function practiceDue(p, d = fday()) {
   if (!p.on) return false;
   if (p.every) { const last = lastDone(p.id); return isDone(p.id, d) || !last || dayDiff(last, d) >= p.every; }
   return (p.days || ALL_DAYS).includes(wd(d));
 }
 const WHEN_ORDER = { morning: 0, midday: 1, any: 2, evening: 3 };
 const WHEN_LABEL = { morning: 'Morning', midday: 'Midday', any: 'Any time', evening: 'Evening' };
-function todaysPractices(d = new Date()) { return F().practices.filter(p => practiceDue(p, d)).sort((a, b) => WHEN_ORDER[a.when] - WHEN_ORDER[b.when]); }
+function todaysPractices(d = fday()) { return F().practices.filter(p => practiceDue(p, d)).sort((a, b) => WHEN_ORDER[a.when] - WHEN_ORDER[b.when]); }
 function faithDayCount(d) { return Object.keys(F().log[dk(d)] || {}).length; }
-function todayMysteries(d = new Date()) { return MYSTERY_BY_DAY[wd(d)]; }
+function todayMysteries(d = fday()) { return MYSTERY_BY_DAY[wd(d)]; }
 function practiceSub(p) {
   if (p.kind === 'rosary') return `The ${MYSTERIES[todayMysteries()].name} Mysteries`;
   if (p.kind === 'scripture') { const r = planToday(); return r ? `Day ${r.day + 1}: ${readingLabel(r.chs)}` : 'Choose a reading plan'; }
   if (p.kind === 'examen') return 'Five steps to review your day with God';
   if (p.kind === 'mass') return 'Today’s readings';
-  if (p.kind === 'confession') { const l = lastDone(p.id); return l ? `Last time ${dayDiff(l, new Date())} days ago` : 'Mark it when you go'; }
-  if (p.every) { const l = lastDone(p.id); return l ? `Every ${p.every} days, last ${dayDiff(l, new Date())} days ago` : `Every ${p.every} days`; }
+  if (p.kind === 'confession') { const l = lastDone(p.id); return l ? `Last time ${dayDiff(l, fday())} days ago` : 'Mark it when you go'; }
+  if (p.every) { const l = lastDone(p.id); return l ? `Every ${p.every} days, last ${dayDiff(l, fday())} days ago` : `Every ${p.every} days`; }
   if (p.kind === 'prayer' && p.id === 'angelus' && liturgy().easterSeason) return 'Regina Caeli in Eastertide';
   return p.sub || '';
 }
@@ -265,7 +270,7 @@ function planToday() {
   const P = F().plan; if (!P || !PLANS[P.id]) return null;
   const days = planDays(P.id), day = days.findIndex((_, i) => !P.done.includes(i));
   if (day < 0) return { finished: true, day: days.length - 1, chs: [], total: days.length };
-  return { day, chs: days[day], total: days.length, expected: Math.min(days.length - 1, dayDiff(P.start, new Date())) };
+  return { day, chs: days[day], total: days.length, expected: Math.min(days.length - 1, dayDiff(P.start, faithToday())) };
 }
 
 /* ---------- views ---------- */
@@ -282,8 +287,8 @@ function practiceRow(p) {
 }
 function faithTodayCard() {
   if (!F().practices.some(p => p.on)) return '';
-  const L = liturgy(), ps = todaysPractices(), done = ps.filter(p => isDone(p.id)).length, nx = nextPractice();
-  const y = F().journal[dk(addDays(new Date(), -1))];
+  const T = faithToday(), L = liturgy(T), ps = todaysPractices(T), done = ps.filter(p => isDone(p.id, T)).length, nx = nextPractice();
+  const y = F().journal[dk(addDays(faithToday(), -1))];
   return `<a class="card faithcard" href="#/faith" style="--lc:${L.hex}">${glow(seasonPalette(L), 'soft')}
     <div class="row"><div class="grow">${litPill(L)}${L.feast ? `<div class="feast">${esc(L.feast)}</div>` : ''}</div><div class="fcount"><b>${done}</b>/${ps.length}</div></div>
     ${L.note ? `<div class="muted small" style="margin-top:6px">${esc(L.note)}</div>` : ''}
@@ -293,25 +298,33 @@ function faithTodayCard() {
 }
 VIEWS.faith = () => {
   setTop(`<h1>Faith</h1><a class="icon-btn" href="#/faithsetup" aria-label="Customise">${ICON.gear}</a>`);
-  const L = liturgy(), ps = todaysPractices(), f = F();
+  const D = fday(), L = liturgy(D), ps = todaysPractices(D), f = F(), isT = isFaithToday(D);
+  const dayName = isT ? 'Today' : dk(D) === dk(addDays(faithToday(), -1)) ? 'Yesterday' : D.toLocaleDateString(undefined, { weekday: 'long' });
   const groups = {}; ps.forEach(p => (groups[p.when] = groups[p.when] || []).push(p));
   const r = planToday();
-  const mon = mondayOf(new Date());
-  const week = Array.from({ length: 7 }, (_, i) => { const d = addDays(mon, i); return `<div class="${dk(d) === dk() ? 'today' : ''} ${d > new Date() && dk(d) !== dk() ? 'future' : ''}"><span>${'MTWTFSS'[i]}</span><b>${d.getDate()}</b><i>${faithDayCount(d) ? `<em style="background:var(--c-faith)"></em>` : ''}${(f.log[dk(d)] || {}).rosary ? `<em style="background:var(--lc)"></em>` : ''}</i></div>`; }).join('');
+  const mon = mondayOf(faithToday());
+  const week = Array.from({ length: 7 }, (_, i) => { const d = addDays(mon, i), fut = d > faithToday() && !isFaithToday(d); return `<div class="${isFaithToday(d) ? 'today' : ''} ${dk(d) === dk(D) && !isT ? 'sel' : ''} ${fut ? 'future' : ''}" ${fut ? '' : `data-act="fDay" data-d="${dk(d)}" role="button" aria-label="${d.toLocaleDateString(undefined, { weekday: 'long' })}"`}><span>${'MTWTFSS'[i]}</span><b>${d.getDate()}</b><i>${faithDayCount(d) ? `<em style="background:var(--c-faith)"></em>` : ''}${(f.log[dk(d)] || {}).rosary ? `<em style="background:var(--lc)"></em>` : ''}</i></div>`; }).join('');
   const openInt = f.intentions.filter(x => !x.answered), answered = f.intentions.filter(x => x.answered);
+  const dateTxt_ = D.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
   $('#view').innerHTML = `
+    <div class="dayswitch">
+      <button class="icon-btn sm" data-act="fShift" data-d="-1" aria-label="Previous day">${ICON.back}</button>
+      <div class="grow"><b>${dayName}</b><span>${D.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span></div>
+      <button class="icon-btn sm" data-act="fShift" data-d="1" aria-label="Next day" ${isT ? 'disabled style="opacity:.3"' : ''}><span style="display:block;transform:scaleX(-1)">${ICON.back}</span></button>
+    </div>
+    ${isT ? '' : `<div class="pastnote">You’re filling in ${dayName.toLowerCase() === 'yesterday' ? 'yesterday' : dayName}. Anything you tick counts for that day. <button class="linkbtn" data-act="fToday">Back to today</button></div>`}
     <div class="lithero" style="--lc:${L.hex}">
       ${glow(seasonPalette(L))}
       <div class="lit-in">
       ${litPill(L)}
-      <div class="title" style="margin-top:10px">${esc(L.feast || new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }))}</div>
-      ${L.feast ? `<div class="muted small" style="margin-top:2px">${new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</div>` : ''}
+      <div class="title" style="margin-top:10px">${esc(L.feast || dateTxt_)}</div>
+      ${L.feast ? `<div class="muted small" style="margin-top:2px">${dateTxt_}</div>` : ''}
       ${L.note ? `<div class="muted small" style="margin-top:4px">${esc(L.note)}</div>` : ''}
-      <blockquote class="saying">“${esc(saying()[0])}”<cite>${esc(saying()[1])}</cite></blockquote>
-      <a class="btn sm glass" href="${massReadingsUrl()}" target="_blank" rel="noopener">Today’s Mass readings</a>
+      <blockquote class="saying">“${esc(saying(D)[0])}”<cite>${esc(saying(D)[1])}</cite></blockquote>
+      <a class="btn sm glass" href="${massReadingsUrl(D)}" target="_blank" rel="noopener">${isT ? 'Today’s' : 'That day’s'} Mass readings</a>
       </div>
     </div>
-    <div class="h2 row"><span class="grow">Today</span><span class="small muted">${ps.filter(p => isDone(p.id)).length} of ${ps.length}</span></div>
+    <div class="h2 row"><span class="grow">${dayName}</span><span class="small muted">${ps.filter(p => isDone(p.id)).length} of ${ps.length}</span></div>
     ${ps.length ? Object.keys(WHEN_LABEL).filter(w => groups[w]).map(w => `<div class="pgroup"><div class="eyebrow">${WHEN_LABEL[w]}</div><div class="plist">${groups[w].map(practiceRow).join('')}</div></div>`).join('') : `<div class="card muted small">Nothing scheduled today. <a href="#/faithsetup" style="text-decoration:underline">Choose your practices</a>.</div>`}
     <div class="card" style="margin-top:12px"><div class="eyebrow">This week</div><div class="wkstrip">${week}</div></div>
 
@@ -350,6 +363,9 @@ VIEWS.faithsetup = () => {
       <div class="grow" data-act="fEdit" data-p="${p.id}"><b>${esc(p.name)}</b><span>${WHEN_LABEL[p.when]}, ${p.every ? `every ${p.every} days` : (p.days.length === 7 ? 'daily' : p.days.map(i => DAY_NAMES[i]).join(' '))}</span></div>
       <button class="icon-btn sm" data-act="fEdit" data-p="${p.id}" aria-label="Edit">${ICON.edit}</button></div>`).join('')}</div>
     <button class="btn ghost block" style="margin-top:12px" data-act="fAdd">${ICON.plus} Add a practice</button>
+    <div class="h2">New day starts at</div>
+    <div class="seg">${[[0, 'Midnight'], [2, '2 am'], [3, '3 am'], [4, '4 am']].map(([h, l]) => `<button class="${(f.opts.dayStart != null ? f.opts.dayStart : 3) === h ? 'on' : ''}" data-act="fDayStart" data-h="${h}">${l}</button>`).join('')}</div>
+    <div class="muted small" style="margin-top:8px">Prayer after midnight but before this time counts for the day before.</div>
     <div class="h2">Options</div>
     <div class="plist">
       ${[['showPrayers', 'Show full prayer texts', 'Otherwise prayers are collapsed, tap to open'],
@@ -403,8 +419,8 @@ function rosarySteps(set) {
   steps.push({ k: 'Closing', title: 'Hail, Holy Queen', html: `<p class="lead">Finish with the Hail, Holy Queen and the closing prayer${f.opts.stMichaelAfterRosary ? ', then the St Michael Prayer' : ''}.</p>${prayerBlock(['holyqueen', 'rosaryprayer', ...(f.opts.stMichaelAfterRosary ? ['stmichael'] : []), 'sign'])}` });
   return steps;
 }
-function examenSteps() {
-  const j = F().journal[dk()] || {};
+function examenSteps(day = fday()) {
+  const j = F().journal[dk(day)] || {};
   const ta = (k, ph) => `<textarea class="gnote" data-jn="${k}" placeholder="${ph}">${esc(j[k] || '')}</textarea>`;
   return [
     { k: 'Step 1 of 5', title: 'Become aware of God’s presence', html: `<p class="lead">Be still. Slow your breathing. God is here, and he looks at you with love. Ask the Holy Spirit to help you see your day as he sees it.</p><div class="breathe"><i></i><span>Breathe slowly. Take your time.</span></div>` },
@@ -417,7 +433,8 @@ function examenSteps() {
 }
 function openGuide(kind, opts = {}) {
   const set = opts.set || todayMysteries();
-  GD = { kind, set, i: 0, start: now(), steps: kind === 'rosary' ? rosarySteps(set) : examenSteps() };
+  const day = fday();
+  GD = { kind, set, day, i: 0, start: now(), steps: kind === 'rosary' ? rosarySteps(set) : examenSteps(day) };
   showOverlay('guide'); renderGuide();
 }
 function renderGuide() {
@@ -437,8 +454,8 @@ function renderGuide() {
 }
 function finishGuide() {
   const dur = Math.round((now() - GD.start) / 1000), kind = GD.kind;
-  F().sessions.push({ date: new Date().toISOString(), kind, title: kind === 'rosary' ? `Rosary, ${MYSTERIES[GD.set].name} Mysteries` : 'Examen', dur });
-  setDone(kind === 'rosary' ? 'rosary' : 'examen');
+  F().sessions.push({ date: new Date().toISOString(), day: dk(GD.day), kind, title: kind === 'rosary' ? `Rosary, ${MYSTERIES[GD.set].name} Mysteries` : 'Examen', dur });
+  setDone(kind === 'rosary' ? 'rosary' : 'examen', true, GD.day);
   GD = null; hideOverlay();
   toast(kind === 'rosary' ? 'Rosary prayed. Thanks be to God.' : 'Examen done. Good night.');
 }
@@ -458,17 +475,21 @@ function openPractice(p) {
   if (p.kind === 'examen') return openGuide('examen');
   if (p.kind === 'scripture') { if (!F().plan) return planPicker(); go('#/faith'); setTimeout(() => { const c = $('.scard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120); return; }
   if (p.kind === 'prayer') return prayerSheet(p.id === 'angelus' && liturgy().easterSeason ? 'reginacaeli' : p.prayer, p.id);
-  if (p.kind === 'mass') { window.open(massReadingsUrl(), '_blank', 'noopener'); return; }
+  if (p.kind === 'mass') { window.open(massReadingsUrl(fday()), '_blank', 'noopener'); return; }
   if (p.kind === 'confession') return prayerSheet('contrition', p.id);
   setDone(p.id, !isDone(p.id)); refresh();
 }
 const findP = id => F().practices.find(p => p.id === id);
 Object.assign(ACT, {
+  fShift: el => { const d = addDays(fday(), +el.dataset.d); if (d > faithToday() || dayDiff(d, faithToday()) > 60) return; FSEL = isFaithToday(d) ? null : d; rerender(); },
+  fDay: el => { const d = new Date(el.dataset.d + 'T12:00'); FSEL = isFaithToday(d) ? null : d; rerender(); },
+  fToday: () => { FSEL = null; rerender(); },
+  fDayStart: el => { F().opts.dayStart = +el.dataset.h; save(); rerender(); },
   fDone: el => { const id = el.dataset.p; setDone(id, !isDone(id)); if (isDone(id)) buzz(20); refresh(); },
   fOpen: el => { const p = findP(el.dataset.p); if (p) openPractice(p); },
   fMark: el => { setDone(el.dataset.p, true); dismissSheet(); refresh(); toast('Amen'); },
   fPrayer: el => prayerSheet(el.dataset.k),
-  fRead: () => { const P = F().plan, r = planToday(); if (!P || !r || r.finished) return; P.done.push(r.day); setDone('scripture'); save(); refresh(); toast(`Day ${r.day + 1} read`); },
+  fRead: () => { const P = F().plan, r = planToday(); if (!P || !r || r.finished) return; P.done.push(r.day); setDone('scripture', true, fday()); save(); refresh(); toast(`Day ${r.day + 1} read`); },
   fPlanPick: () => planPicker(),
   fPlanSet: el => { F().plan = { id: el.dataset.k, start: dk(), done: [] }; save(); dismissSheet(); refresh(); },
   fIntAdd: () => { const i = $('#intentIn'); const t = i && i.value.trim(); if (!t) return; F().intentions.unshift({ id: uid(), text: t, date: new Date().toISOString() }); save(); rerender(); },
@@ -501,6 +522,6 @@ Object.assign(ACT, {
 // Examen notes save as you type
 document.addEventListener('input', e => {
   const t = e.target;
-  if (t.dataset && t.dataset.jn) { const k = dk(), J = F().journal; J[k] = J[k] || {}; J[k][t.dataset.jn] = t.value; save(); }
+  if (t.dataset && t.dataset.jn) { const k = dk(GD ? GD.day : fday()), J = F().journal; J[k] = J[k] || {}; J[k][t.dataset.jn] = t.value; save(); }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'intentIn') ACT.fIntAdd(); });

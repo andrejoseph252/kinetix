@@ -68,6 +68,7 @@ function route() {
   current = name;
   if (MAIN_TABS.includes(name)) lastMain = name;
   const holy = ['faith', 'faithsetup'].includes(name);
+  if (!holy && typeof FSEL !== 'undefined') FSEL = null; // a picked day only lasts while you're in Faith
   if (holy && typeof liturgy === 'function') document.body.style.setProperty('--lc', liturgy().hex);
   const tab = MAIN_TABS.includes(name) ? name : ['s', 'quick', 'day', 'plan'].includes(name) ? (lastMain === 'today' || lastMain === 'mobility' ? lastMain : 'workouts') : lastMain;
   document.querySelectorAll('#tabbar a').forEach(a => a.classList.toggle('on', a.dataset.tab === tab));
@@ -291,7 +292,7 @@ VIEWS.s = (ref) => {
     <div class="row" style="margin-top:18px;flex-wrap:wrap">
       ${ref[0] !== 't' ? `<button class="btn ghost grow" data-act="saveTpl" data-r="${ref}">Save to My workouts</button>` : `<button class="btn ghost grow" data-act="dupTpl" data-r="${ref}">Duplicate</button><button class="btn ghost danger" data-act="delTpl" data-r="${ref}">${ICON.trash}</button>`}
     </div>
-    <div style="position:sticky;bottom:calc(var(--tab-h) + var(--safe-b) + 10px);margin-top:16px">
+    <div style="position:sticky;z-index:5;bottom:calc(max(6px, var(--safe-b) - 12px) + 80px);margin-top:16px">
       <button class="btn pri block" data-act="startSess" data-r="${ref}" style="height:54px;font-size:16px;box-shadow:0 10px 30px rgba(0,0,0,.5)">${PLAY} ${isActive ? 'Resume workout' : 'Start workout'}</button>
     </div>`;
 };
