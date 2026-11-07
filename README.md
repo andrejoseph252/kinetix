@@ -36,7 +36,7 @@ python3 -m http.server 8000   # then open http://localhost:8000
 - **Workouts** — everything you can run: your plan, the last generated session, My workouts. Filter by category; generate or build blank.
 - **Mobility** — routines grouped Morning / Anytime / Evening / Target an area, loaded-mobility sessions, and a custom flow builder. Customise any routine to save and edit it.
 - **Faith** — your daily rule of life (Morning Offering, Scripture, Rosary, Examen, Mass, Confession… or your own), a guided Rosary (mysteries by day, Scripture, fruits, prayers — bring your own beads), a five-step Examen with a journal, NABRE reading plans (links to bible.usccb.org), intentions, a prayer library and the liturgical season/feast of the day. Customise practices with the gear icon.
-- **Library** · **Progress** (minutes by category, 4-week calendar, history). Timer and Settings are the icons top-right.
+- **Progress** (minutes by category, faith this week, 4-week calendar, history). The exercise **Library**, Timer and Settings are the icons top-right (Library is also on Workouts).
 
 Colours mark categories everywhere: lime strength, yellow athletic, blue kettlebell, coral conditioning, teal mobility, violet recovery.
 

@@ -1,7 +1,7 @@
 // Kinetix service worker — offline support.
 // Shell: network-first (so GitHub Pages updates show up), falling back to cache.
 // Exercise images: cache-first (they never change).
-const VERSION = 'v10';
+const VERSION = 'v11';
 const SHELL = 'kx-shell-' + VERSION;
 const IMG = 'kx-img-v1';
 const SHELL_FILES = [

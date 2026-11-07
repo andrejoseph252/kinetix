@@ -59,7 +59,7 @@ const dateTxt = iso => new Date(iso).toLocaleDateString(undefined, { weekday: 's
    ========================================================= */
 const VIEWS = {};
 let current = 'plan';
-const MAIN_TABS = ['today', 'workouts', 'mobility', 'faith', 'library', 'progress'];
+const MAIN_TABS = ['today', 'workouts', 'mobility', 'faith', 'progress'];
 let lastMain = 'today';
 function route() {
   const parts = (location.hash || '#/today').slice(2).split('/');
@@ -76,7 +76,7 @@ function rerender() { const y = window.scrollY; const parts = (location.hash || 
 
 /* ---------- shared bits ---------- */
 const PLAY = ICON.play.replace('<svg', '<svg style="fill:currentColor;stroke:none"');
-const topIcons = () => `<a class="icon-btn" href="#/timer" aria-label="Timer">${ICON.stopwatch}</a><a class="icon-btn" href="#/setup" aria-label="Settings">${ICON.gear}</a>`;
+const topIcons = () => `<a class="icon-btn" href="#/library" aria-label="Exercise library">${ICON.book}</a><a class="icon-btn" href="#/timer" aria-label="Timer">${ICON.stopwatch}</a><a class="icon-btn" href="#/setup" aria-label="Settings">${ICON.gear}</a>`;
 const mondayOf = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
 const histCat = h => {
   if (h.cat) return h.cat;
@@ -211,7 +211,8 @@ VIEWS.workouts = () => {
   setTop(`<h1>Workouts</h1>${topIcons()}`);
   const f = S.ui.wf, P = S.plan;
   let html = activeCard() + `<div class="chips scroll">${WF.map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="wf" data-k="${k}">${l}</button>`).join('')}</div>
-    <div class="row" style="margin-top:12px"><button class="btn pri grow" data-act="goQuick">${ICON.shuffle} Generate a session</button><button class="btn ghost" data-act="newTpl">${ICON.plus} Blank</button></div>`;
+    <div class="row" style="margin-top:12px"><button class="btn pri grow" data-act="goQuick">${ICON.shuffle} Generate a session</button><button class="btn ghost" data-act="newTpl">${ICON.plus} Blank</button></div>
+    <a class="qrow liblink" href="#/library" style="--c:var(--c-kb);margin-top:10px;border-radius:var(--r)"><span class="grow"><b>Exercise library</b><span>${EX.length} moves with photos, cues and demos</span></span><span class="qrow-m">${ICON.book}</span></a>`;
   let n = 0;
   if (f !== 'mine') {
     if (P) {
@@ -513,7 +514,7 @@ const LIB_FILTERS = [
   ['smr', 'Foam roll', e => has_(e, 'smr')],
 ];
 VIEWS.library = () => {
-  setTop(`<h1>Library</h1><span class="sub">${EX.length} moves</span>`);
+  setTop(`<a class="icon-btn" href="#/${lastMain}" data-nav="back" aria-label="Back">${ICON.back}</a><h1>Library</h1><span class="sub">${EX.length} moves</span>`);
   $('#view').innerHTML = `
     <input type="search" id="libq" placeholder="Search exercises, muscles…" value="${esc(S.ui.q)}" autocomplete="off">
     <div class="chips scroll" style="margin-top:10px">${LIB_FILTERS.map(([k, l]) => `<button class="chip ${S.ui.lib === k ? 'on' : ''}" data-act="lib" data-k="${k}">${l}</button>`).join('')}</div>

@@ -657,7 +657,7 @@ input:focus, textarea:focus { border-color: var(--text); }
 /* ---------- Faith ---------- */
 :root { --c-faith: #e7c27d; }
 .tabbar a[data-tab=faith].on { color: var(--c-faith); }
-.tabbar a { font-size: 10.5px; }
+.tabbar a { font-size: 11px; }
 .litpill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: var(--text); }
 .litpill i { width: 10px; height: 10px; border-radius: 50%; background: var(--lc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lc) 25%, transparent); }
 .lithero { padding: 18px; border-radius: 22px; background: radial-gradient(130% 120% at 100% 0%, color-mix(in srgb, var(--lc) 22%, transparent), transparent 60%), var(--s1); }
