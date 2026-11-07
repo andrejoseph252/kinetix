@@ -20,11 +20,11 @@
   <main id="view" class="view"></main>
 
   <nav class="tabbar" id="tabbar">
-    <a href="#/plan" data-tab="plan"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg><span>Train</span></a>
+    <a href="#/today" data-tab="today"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg><span>Today</span></a>
+    <a href="#/workouts" data-tab="workouts"><svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><span>Workouts</span></a>
     <a href="#/mobility" data-tab="mobility"><svg viewBox="0 0 24 24"><circle cx="12" cy="4.5" r="2"/><path d="M12 7v6m0 0-4 7m4-7 4 7M5 10l7-1 7 1"/></svg><span>Mobility</span></a>
-    <a href="#/timer" data-tab="timer"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 13V9M10 2h4"/></svg><span>Timer</span></a>
     <a href="#/library" data-tab="library"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Library</span></a>
-    <a href="#/log" data-tab="log"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/></svg><span>Log</span></a>
+    <a href="#/progress" data-tab="progress"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/></svg><span>Progress</span></a>
   </nav>
 
   <div id="overlay" class="overlay" hidden></div>
@@ -33,6 +33,12 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/actions.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

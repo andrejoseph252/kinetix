@@ -29,6 +29,15 @@ python3 -m http.server 8000   # then open http://localhost:8000
 - **Splits:** 2 days = Full Body A/B · 3 = Squat & Push / Hinge & Pull / Athletic Single-Leg · 4 adds Mobility & Recovery · 5 adds an Engine (conditioning) day.
 - **Style:** *Keep it simple*, *Kettlebell first*, *Classic gym* or *Mixed* weights which exercises get picked. Every exercise can be swapped for an alternative that fits your equipment.
 
+## Layout
+
+- **Today** — a mobility routine picked for the time of day, your next plan session, quick picks, and this week at a glance.
+- **Workouts** — everything you can run: your plan, the last generated session, My workouts. Filter by category; generate or build blank.
+- **Mobility** — routines grouped Morning / Anytime / Evening / Target an area, loaded-mobility sessions, and a custom flow builder. Customise any routine to save and edit it.
+- **Library** · **Progress** (minutes by category, 4-week calendar, history). Timer and Settings are the icons top-right.
+
+Colours mark categories everywhere: lime strength, yellow athletic, blue kettlebell, coral conditioning, teal mobility, violet recovery.
+
 ## One-off sessions & editing
 
 - **Train tab → One-off session:** pick a focus (Strength & Power, Mobility & Control, Kettlebell, Athletic, Engine, Lower, Upper, Recovery), time, energy and today's equipment. The session is sized to the time you pick. Shuffle the whole thing or a single block.
@@ -41,7 +50,12 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 | Path | What |
 |---|---|
-| `index.html`, `css/app.css`, `js/app.js` | The app |
+| `index.html`, `css/app.css` | Shell and styles |
+| `js/core.js` | Constants, categories/colours, state, audio |
+| `js/engine.js` | Plan + one-off session generators, dosing, mobility routines |
+| `js/views.js` | Screens: Today, Workouts, Mobility, Library, Progress, session view |
+| `js/player.js` | Workout player, rest bar, interval/flow runner |
+| `js/editor.js`, `js/actions.js`, `js/main.js` | Editing sheets, tap actions, boot |
 | `js/data.js` | Exercise library (generated — don't hand-edit) |
 | `img/ex/` | Exercise photos, normalised to one greyscale style |
 | `tools/build_data.py` | Curated exercise list + cues; rebuilds `data.js` and photos |
