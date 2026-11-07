@@ -553,14 +553,6 @@ input:focus, textarea:focus { border-color: var(--text); }
 .inote { color: #f3dd9a; border-left-color: rgba(243,221,154,.5); }
 .note { background: var(--acc-soft); color: var(--text); }
 
-/* duotone exercise tiles: figure in ink on its category colour */
-.ph { --tile: color-mix(in srgb, var(--c, var(--c-custom)) 62%, #f4f1ea); background: var(--tile); border-radius: var(--r-sm); }
-.ph img { filter: grayscale(1) contrast(1.25) brightness(1.06); mix-blend-mode: multiply; }
-.ph::after { background: linear-gradient(180deg, transparent 55%, rgba(18,24,38,.18)); mix-blend-mode: normal; }
-.ph .nophoto { background: var(--tile); color: #1d2433; }
-.ph .nophoto svg { stroke: #1d2433; opacity: .55; }
-.ph .badge { background: #121826; color: var(--text); font-family: var(--display); font-size: 15px; font-weight: 800; padding: 2px 8px; }
-.ph .nophoto .ytlink { background: rgba(18,24,38,.85); color: #ffb3b3; }
 .lib-card { border: 0; border-radius: var(--r); background: var(--s1); }
 .lib-card .nm { font-weight: 650; }
 .pex { border: 0; border-radius: 22px; }
@@ -613,14 +605,15 @@ input:focus, textarea:focus { border-color: var(--text); }
 }
 .bignum.sm { font-size: 40px; color: var(--c, var(--text)); flex: none; }
 .daycard .eyebrow { color: var(--c); font-weight: 650; }
-/* duotone: navy shadows, category-coloured highlights */
-.ph { isolation: isolate; --tile: color-mix(in srgb, var(--c, var(--c-custom)) 80%, #ffffff); }
-.ph img { filter: grayscale(1) contrast(1.15) brightness(1.15); mix-blend-mode: multiply; }
-.ph::after { background: #26314a; mix-blend-mode: lighten; z-index: 1; }
-.ph .nophoto { z-index: 0; }
-.ph .badge, .ph .nophoto .ytlink { z-index: 2; position: relative; }
-.ph .badge { position: absolute; }
-.ph:has(.nophoto)::after { display: none; }
 .stitle { font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1.02; letter-spacing: .01em; }
 .stitle span { font-size: 18px; color: var(--muted); font-weight: 700; white-space: nowrap; }
 .topbar { background: rgba(18,24,38,.82); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); max-width: none; padding-left: max(16px, calc((100vw - 568px) / 2)); padding-right: max(16px, calc((100vw - 568px) / 2)); }
+
+/* exercise photos: clean greyscale, no blend layers. Category colour = thin edge strip. */
+.ph { background: #d9d9d6; border-radius: var(--r-sm); isolation: auto; }
+.ph img { filter: none; mix-blend-mode: normal; }
+.ph::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; top: auto; height: 3px; background: var(--c, transparent); mix-blend-mode: normal; z-index: 1; }
+.ph .nophoto { background: color-mix(in srgb, var(--c, var(--c-custom)) 22%, var(--s2)); color: var(--muted); }
+.ph .nophoto svg { stroke: var(--c, var(--muted)); opacity: .8; }
+.ph .badge { position: absolute; z-index: 2; background: rgba(18,24,38,.85); color: var(--text); font-family: var(--display); font-size: 15px; font-weight: 800; padding: 2px 8px; }
+.ph .nophoto .ytlink { position: relative; z-index: 2; background: rgba(18,24,38,.6); color: #ffb3b3; }
