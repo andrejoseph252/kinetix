@@ -21,7 +21,7 @@ Row format:
                       core carry cond stretch smr prehab
                       lmob (loaded mobility) control (balance / body control) cars (joint circles) breath
                       iso (single-joint accessory) arms (biceps / triceps work)
-            regions also: biceps triceps
+            regions also: biceps triceps neck
             regions:  hips hams quads glutes groin calves ankles tspine shoulders chest lats back wrists
   equipment alternatives separated by "|" (any one is enough). "" = bodyweight only.
             bw kb db bb bar band bench cable mb roller trx cardio machine (gym machines incl. smith, dip station)
@@ -613,6 +613,28 @@ X += [
  ["Smooth strides, push and pull the handles", "Moderate resistance", "Easy on the joints"]),
 ("Bicycling_Stationary", "Stationary Bike", "cond", "cardio", "", 1, "600s",
  ["Seat at hip height", "Steady cadence 80–90 rpm", "Add intervals for conditioning"]),
+]
+
+# ---------------- DESK & BEDTIME (added) ----------------
+X += [
+(None, "Standing Hip Flexor Stretch", "stretch hips quads", "", "", 1, "30s/s",
+ ["Split stance, back heel up", "Tuck the pelvis under and squeeze the back glute", "Reach the same-side arm up for more"]),
+(None, "Chin Tucks", "prep mobility neck", "", "", 1, "10",
+ ["Sit or stand tall", "Glide the head straight back — make a double chin", "Hold 2 seconds, release"]),
+(None, "Standing T-Spine Rotation", "prep mobility tspine", "", "", 1, "8/s",
+ ["Hips square, hands crossed on the chest or at the ears", "Rotate from the upper back, not the hips", "Breathe out as you turn"]),
+(None, "Chair Thoracic Extension", "prep mobility tspine", "", "", 1, "8",
+ ["Sit tall, hands behind the head", "Lean back over the top of the chair", "Lift the chest to the ceiling, then return"]),
+(None, "Seated Figure-4 Stretch", "stretch glutes hips", "", "", 1, "30s/s",
+ ["Sit on a chair, ankle over the opposite knee", "Long spine, hinge forward slightly", "Feel it in the outer hip"]),
+(None, "Neck Side Stretch", "stretch neck shoulders", "", "", 1, "30s/s",
+ ["Sit tall, ear towards shoulder", "Let the opposite shoulder drop", "Gentle — no pulling"]),
+(None, "Supine Figure-4 Stretch", "stretch glutes hips", "", "", 1, "60s/s",
+ ["On your back, ankle over the opposite knee", "Pull the bottom thigh towards you", "Head and shoulders stay relaxed on the floor"]),
+(None, "Happy Baby", "stretch groin hips back", "", "", 1, "60s",
+ ["On your back, grab the outside of the feet", "Knees towards the armpits", "Rock gently side to side"]),
+(None, "Reclined Butterfly", "stretch groin hips", "", "", 1, "90s",
+ ["Lie back, soles of the feet together", "Let the knees fall open — pillows under them if needed", "Hands on the belly, slow breaths"]),
 ]
 
 X.append(("Standing_Dumbbell_Calf_Raise", "Calf Raise", "prehab calves ankles", "|db|kb", "", 1, "15",

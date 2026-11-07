@@ -74,10 +74,10 @@ const ACT = {
     S.quick = generateQuick({ focus: k, mins: +el.dataset.m, energy: q.energy, eq });
     EDITING = false; save(); go('#/s/q');
   },
-  routineGo: el => { const r = ROUTINES.find(x => x.id === el.dataset.id); openFlow(r.name, idEntries(routineIds(r))); },
+  routineGo: el => { const r = ROUTINES.find(x => x.id === el.dataset.id); openFlow(r.name, routineEntries(r), 1, null, 0, { quiet: r.quiet }); },
   flowCustom: () => {
     const p = pendingFlow;
-    const t = normSess({ id: uid(), cat: 'mobility', name: p.title, focus: 'Mobility routine', blocks: [{ title: 'Flow', kind: 'flow', fmt: 'flow', rounds: 1, items: p.ids.map(id => Object.assign({ id: uid(), ex: id }, baseRx(id))) }] });
+    const t = normSess({ id: uid(), cat: 'mobility', name: p.title, focus: 'Mobility routine', blocks: [{ title: 'Flow', kind: 'flow', fmt: 'flow', rounds: 1, items: p.entries.map(e => ({ id: uid(), ex: e.ex, sets: 1, n: e.r.n, unit: e.r.unit, side: e.r.side })) }] });
     S.saved.unshift(t); save(); EDITING = true; onSheetClose = null; closeSheet(); go('#/s/t' + t.id); toast('Saved to My workouts — edit away');
   },
 
@@ -203,16 +203,15 @@ const ACT = {
     const id = el.dataset.id;
     if (id === 'custom') {
       const m = S.ui.mob; if (!m.focus.length) { toast('Pick at least one focus area'); return; }
-      showFlowPreview(`Custom ${m.mins}-min flow`, buildFlow({ mins: m.mins, focus: m.focus, type: m.type }, (Math.random() * 2 ** 31) | 0));
-      pendingFlow.opts = { mins: m.mins, focus: m.focus, type: m.type };
+      const R = customRoutine(m);
+      showFlowPreview(R.name, buildRoutine(R, (Math.random() * 2 ** 31) | 0), R);
     } else {
       const r = ROUTINES.find(x => x.id === id);
-      showFlowPreview(r.name, buildFlow(r, hash(r.id + new Date().toDateString())));
-      pendingFlow.opts = r;
+      showFlowPreview(r.name, routineEntries(r), r);
     }
   },
-  reflow: () => { const p = pendingFlow; const o = p.opts; showFlowPreview(p.title, buildFlow(o, (Math.random() * 2 ** 31) | 0)); pendingFlow.opts = o; },
-  startFlow: () => { const p = pendingFlow; closeSheet(); openFlow(p.title, idEntries(p.ids)); },
+  reflow: () => { const p = pendingFlow; showFlowPreview(p.title, buildRoutine(p.recipe, (Math.random() * 2 ** 31) | 0), p.recipe); },
+  startFlow: () => { const p = pendingFlow; closeSheet(); openFlow(p.title, p.entries, 1, null, 0, { quiet: p.recipe && p.recipe.quiet }); },
 
   // timer tab
   ttab: el => { S.ui.timerTab = el.dataset.k; save(); rerender(); },

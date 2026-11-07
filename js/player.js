@@ -258,6 +258,7 @@ function renderFlow() {
     <div class="flow-name" style="margin-top:4px">${esc(ex.name)}</div>
     ${p.sub || p.round ? `<div class="muted small">${esc([p.round ? `Round ${p.round} / ${p.rounds}` : '', p.sub].filter(Boolean).join(' · '))}</div>` : ''}
     ${p.note ? `<div class="inote" style="margin-top:8px">${esc(p.note)}</div>` : ''}
+    ${RUN.quiet && !isPrep ? `<div class="breathe"><i></i><span>Breathe in for 4, out for 6</span></div>` : ''}
     <div class="flow-time"><div class="big" id="ringNum">${fmt(Math.ceil(left))}</div><div class="bar"><i id="flowBar" style="width:${p.secs ? (1 - left / p.secs) * 100 : 0}%;${isPrep ? 'background:var(--info)' : ''}"></i></div></div>
     <ul class="cues">${ex.cues.map(c => `<li>${esc(c)}</li>`).join('')}</ul>
     <div style="text-align:center;margin-top:6px"><a class="ytlink" href="${ytUrl(ex.name)}" target="_blank" rel="noopener">${ICON.yt} Watch demos</a></div>
@@ -269,27 +270,29 @@ function renderFlow() {
     ${nxt ? `<div class="muted small" style="text-align:center;margin-top:14px">Next: ${esc(BY[nxt.ex].name)}</div>` : ''}
   </div>`;
 }
-function openFlow(title, entries, rounds = 1, onDone, minSecs = 0) {
+function openFlow(title, entries, rounds = 1, onDone, minSecs = 0, opts = {}) {
   let steps = [];
   for (let r = 0; r < rounds; r++) steps = steps.concat(flowSteps(entries, minSecs).map(st => Object.assign(st, { round: rounds > 1 ? r + 1 : 0, rounds })));
   const phases = [];
   steps.forEach((s, i) => {
-    if (!s.sw) phases.push({ kind: 'prep', secs: i === 0 ? 8 : 5, ex: s.ex });
+    if (!s.sw) phases.push({ kind: 'prep', secs: i === 0 ? 8 : opts.quiet ? 8 : 5, ex: s.ex });
     phases.push({ kind: 'work', secs: s.secs, ex: s.ex, label: s.label, sub: s.sub, sw: s.sw, note: s.note, round: s.round, rounds: s.rounds });
   });
   makeRun(phases, { title, mode: 'flow', onDone });
   RUN.flowIds = [...new Set(entries.map(e => e.ex))];
-  showOverlay('run'); runStart(); sfx.tick(); renderRun();
+  RUN.quiet = !!opts.quiet;
+  showOverlay('run'); runStart(); if (!RUN.quiet) sfx.tick(); renderRun();
 }
 function runAdvance() {
   if (RUN.i >= RUN.phases.length - 1) {
-    RUN.finished = true; RUN.running = false; sfx.done();
+    RUN.finished = true; RUN.running = false; RUN.quiet ? sfx.soft(2) : sfx.done();
     if (RUN.mode === 'flow' && !RUN.onDone) logMobility(RUN.title, RUN.flowIds, (now() - RUN.startTs) / 1000);
     renderRun(); return;
   }
   RUN.i++; RUN.left = RUN.phases[RUN.i].secs; RUN.lastSec = null; runStart();
   const p = RUN.phases[RUN.i];
-  if (p.kind === 'work') (p.sw ? sfx.switch : sfx.go)(); else sfx.rest();
+  if (RUN.quiet) { if (p.kind === 'work') sfx.soft(p.sw ? 2 : 1); }
+  else if (p.kind === 'work') (p.sw ? sfx.switch : sfx.go)(); else sfx.rest();
   renderRun();
 }
 function logMobility(title, ids, dur) {
@@ -332,7 +335,7 @@ function tick() {
     const p = RUN.phases[RUN.i], left = (RUN.end - t) / 1000, sec = Math.ceil(left);
     if (left <= 0) runAdvance();
     else {
-      if (sec !== RUN.lastSec) { if (sec <= 3 && RUN.lastSec !== null && p.secs > 4) sfx.tick(); RUN.lastSec = sec; const n = $('#ringNum'); if (n) n.textContent = fmt(sec); }
+      if (sec !== RUN.lastSec) { if (sec <= 3 && RUN.lastSec !== null && p.secs > 4 && !RUN.quiet) sfx.tick(); RUN.lastSec = sec; const n = $('#ringNum'); if (n) n.textContent = fmt(sec); }
       const v = $('#ringVal'); if (v) { const C = 2 * Math.PI * 140; v.setAttribute('stroke-dashoffset', C * (1 - left / p.secs)); }
       const fb = $('#flowBar'); if (fb) fb.style.width = (1 - left / p.secs) * 100 + '%';
     }

@@ -33,7 +33,7 @@ const TAG_LABEL = {
   hips: 'Hips', hams: 'Hamstrings', quads: 'Quads', glutes: 'Glutes', groin: 'Groin', calves: 'Calves', ankles: 'Ankles',
   tspine: 'T-spine', shoulders: 'Shoulders', chest: 'Chest', lats: 'Lats', back: 'Back', wrists: 'Wrists',
   lmob: 'Loaded mobility', control: 'Control', cars: 'Joint CARs', breath: 'Breathing', custom: 'Custom',
-  iso: 'Isolation', arms: 'Arms', biceps: 'Biceps', triceps: 'Triceps',
+  iso: 'Isolation', arms: 'Arms', biceps: 'Biceps', triceps: 'Triceps', neck: 'Neck',
 };
 const PATTERN_TAGS = ['iso', 'arms', 'prep', 'mobility', 'power', 'squat', 'hinge', 'single', 'lateral', 'hpush', 'vpush', 'hpull', 'vpull', 'core', 'carry', 'cond', 'stretch', 'smr', 'prehab', 'lmob', 'control', 'cars', 'breath'];
 // Block formats
@@ -143,6 +143,8 @@ const sfx = {
   rest: () => { beep(520, 0.3, 0.3); buzz([80, 60, 80]); },
   done: () => { beep(784, 0.14); beep(988, 0.14, 0.3, 0.16); beep(1318, 0.3, 0.3, 0.32); buzz([120, 60, 120, 60, 200]); },
   switch: () => { beep(880, 0.1); beep(880, 0.1, 0.3, 0.15); buzz(120); },
+  // gentle chime for evening / bedtime routines
+  soft: (n = 1) => { for (let i = 0; i < n; i++) beep(528, 0.6, 0.07, i * 0.5); },
 };
 function buzz(p) { if (S.settings.vibrate && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} }
 

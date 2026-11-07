@@ -649,3 +649,7 @@ input:focus, textarea:focus { border-color: var(--text); }
 .donecard .tick svg { width: 24px; height: 24px; stroke: #121826; fill: none; stroke-width: 2.6; }
 .nextcta { display: flex; align-items: center; gap: 12px; }
 .qmore { --c: var(--line); } .qmore b { color: var(--muted); }
+/* breathing guide: 4s in, 6s out */
+.breathe { display: flex; align-items: center; gap: 12px; margin-top: 12px; color: var(--c-recovery); font-weight: 600; font-size: 14px; }
+.breathe i { width: 26px; height: 26px; border-radius: 50%; background: color-mix(in srgb, var(--c-recovery) 35%, transparent); border: 2px solid var(--c-recovery); animation: breathe 10s ease-in-out infinite; flex: none; }
+@keyframes breathe { 0% { transform: scale(.6) } 40% { transform: scale(1.15) } 100% { transform: scale(.6) } }

@@ -110,10 +110,10 @@ function weekStrip() {
 }
 const WHEN_CAT = { morning: 'athletic', anytime: 'mobility', evening: 'recovery', target: 'kb' };
 function routineHero(r, label) {
-  const ids = routineIds(r), night = ['evening', 'night'].includes(partOfDay());
+  const ents = routineEntries(r), ids = ents.map(e => e.ex), night = ['evening', 'night'].includes(partOfDay());
   return `<div class="card hero" style="--c:${cvar(WHEN_CAT[r.when] || 'mobility')}">
     <div class="eyebrow cc">${night ? ICON.moon : ICON.sun} ${label}</div>
-    <div class="row" style="align-items:flex-end;margin-top:10px;gap:14px"><div class="grow"><div class="title">${esc(r.name)}</div><div class="muted small" style="margin-top:6px">${esc(r.blurb)}</div></div><div class="bignum" style="color:var(--c)">${r.mins}<small>min</small></div></div>
+    <div class="row" style="align-items:flex-end;margin-top:10px;gap:14px"><div class="grow"><div class="title">${esc(r.name)}</div><div class="muted small" style="margin-top:6px">${esc(r.blurb)}</div></div><div class="bignum" style="color:var(--c)">${routineMins(ents)}<small>min</small></div></div>
     <div class="strip">${ids.slice(0, 6).map(id => ph(BY[id])).join('')}</div>
     <div class="row" style="margin-top:12px"><button class="btn cbtn grow" data-act="routineGo" data-id="${r.id}">${PLAY} Start</button><button class="btn ghost" data-act="routine" data-id="${r.id}">Preview</button></div>
   </div>`;
@@ -411,7 +411,7 @@ VIEWS.mobility = () => {
   const mon = mondayOf(new Date());
   const mobDays = new Set(S.history.filter(h => new Date(h.date) >= mon && isMob(histCat(h))).map(h => new Date(h.date).toDateString())).size;
   const row = r => `<div class="rt" data-act="routine" data-id="${r.id}" style="--c:${cvar(WHEN_CAT[r.when])}">
-      <div class="rt-m"><b>${r.mins}</b><span>min</span></div>
+      <div class="rt-m"><b>${routineMins(routineEntries(r))}</b><span>min</span></div>
       <div class="grow"><div class="nm">${esc(r.name)}</div><div class="muted small">${esc(r.blurb)}</div></div>
       <button class="rt-go" data-act="routineGo" data-id="${r.id}" aria-label="Start ${esc(r.name)}">${PLAY}</button></div>`;
   $('#view').innerHTML = `
@@ -434,13 +434,21 @@ VIEWS.mobility = () => {
     </div>`;
 };
 let pendingFlow = null;
-function showFlowPreview(title, ids) {
-  pendingFlow = { title, ids };
-  const steps = flowSteps(idEntries(ids)), total = steps.reduce((a, s) => a + s.secs + 5, 0);
-  openSheet(`<h3>${esc(title)}</h3><div class="muted small">${ids.length} moves · ~${Math.round(total / 60)} min · sides switch automatically</div>
-    <div style="margin-top:14px">${ids.map(id => { const ex = BY[id], t = itemSecs(ex); return `<div class="exrow"><button data-act="ex" data-id="${id}">${ph(ex, 'thumb')}</button><div class="grow" data-act="ex" data-id="${id}"><div class="nm">${esc(ex.name)}</div><div class="ds">${t.secs}s${t.side ? ' / side' : ''}${t.reps ? ` · ≈ ${t.reps} reps` : ''}</div></div></div>`; }).join('')}</div>
-    <div class="row" style="margin-top:16px"><button class="btn ghost" data-act="reflow" aria-label="Shuffle">${ICON.shuffle}</button><button class="btn ghost" data-act="flowCustom">${ICON.edit} Customise</button><button class="btn pri grow" data-act="startFlow">${PLAY} Start</button></div>`);
+function showFlowPreview(title, entries, recipe) {
+  pendingFlow = { title, entries, recipe };
+  const mins = routineMins(entries), quiet = recipe && recipe.quiet;
+  let lastLabel = '';
+  openSheet(`<h3>${esc(title)}</h3><div class="muted small">${entries.length} moves, about ${mins} min. Sides switch automatically${quiet ? '; soft chimes, no countdown beeps' : ''}.</div>
+    <div style="margin-top:14px">${entries.map(e => {
+      const ex = BY[e.ex], st = stepSecs(e.r), m = meta(e.ex);
+      const head = e.label && e.label !== lastLabel ? `<div class="eyebrow" style="margin:12px 0 6px">${esc(e.label)}</div>` : ''; lastLabel = e.label || lastLabel;
+      const amt = st.reps ? `${st.reps} reps${st.side ? ' / side' : ''}` : `${st.secs}s${st.side ? ' / side' : ''}`;
+      return head + `<div class="exrow"><button data-act="ex" data-id="${e.ex}">${ph(ex, 'thumb')}</button><div class="grow" data-act="ex" data-id="${e.ex}"><div class="nm">${esc(ex.name)}</div><div class="ds">${amt}, ${POS_NAME[m.pos]}</div></div></div>`;
+    }).join('')}</div>
+    <div class="row" style="margin-top:16px"><button class="btn ghost" data-act="reflow" aria-label="Shuffle">${ICON.shuffle}</button><button class="btn ghost" data-act="flowCustom">${ICON.edit} Customise</button><button class="btn pri grow" data-act="startFlow">${PLAY} Start</button></div>
+    <div class="muted small" style="margin-top:10px">Routines keep the same moves all week so you can feel them getting easier. Shuffle if you want a change.</div>`);
 }
+const POS_NAME = { stand: 'standing', chair: 'in a chair', kneel: 'kneeling', quad: 'on all fours', seat: 'seated', lie: 'lying down' };
 
 /* ---------- Timer ---------- */
 const IV_PRESETS = [

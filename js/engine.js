@@ -709,19 +709,87 @@ function rerollBlock(sess, b) {
 /* =========================================================
    Mobility flows (standalone)
    ========================================================= */
+/* =========================================================
+   Mobility routines — built from recipes, not just tags.
+   Every move knows its position (so a routine flows instead of
+   bouncing up and down), how intense it is, and its "family"
+   (so you never get two straddle stretches in a row).
+   ========================================================= */
+// position: stand | chair | kneel | quad (all fours / plank) | seat (floor) | lie
+// intensity: 1 gentle · 2 moderate · 3 deep
+const MOVE = {
+  'worlds-greatest-stretch': ['kneel', 2, 'wgs'], 'inchworm': ['stand', 2, 'inchworm'], 'cat-cow': ['quad', 1, 'catcow'],
+  'arm-circles': ['stand', 1, 'armcirc'], 'standing-hip-circles': ['stand', 1, 'hipcirc'], 'leg-swings-front-back': ['stand', 1, 'legswing'],
+  'leg-swings-side-to-side': ['stand', 1, 'legswing2'], 'groiners': ['quad', 2, 'groiner'], 'ankle-circles': ['stand', 1, 'anklecirc'],
+  'dynamic-chest-opener': ['stand', 1, 'chestdyn'], 'iron-cross': ['lie', 1, 'rotlie'], 'toe-touch-windmills': ['stand', 2, 'windmill'],
+  'kettlebell-halo': ['stand', 1, 'halo'], 'band-pull-apart': ['stand', 1, 'pullapart'], 'skips': ['stand', 1, 'skip'],
+  'butt-kicks': ['stand', 1, 'buttkick'], 'carioca': ['stand', 2, 'carioca'], 'crossover-reverse-lunge': ['stand', 2, 'xlunge'],
+  'scap-pull-up': ['stand', 2, 'scap'], 'segmental-bridge': ['lie', 1, 'bridge'], 'shoulder-pass-through': ['stand', 1, 'passthru'],
+  'spiderman-crawl': ['quad', 2, 'spiderman'], '90-90-hip-switch': ['seat', 2, '9090'], 'thoracic-open-book': ['lie', 1, 'openbook'],
+  'deep-squat-hold': ['stand', 2, 'squathold'], 'star-jumps': ['stand', 2, 'starjump'], 'bodyweight-squat': ['stand', 1, 'squat'],
+  'glute-bridge': ['lie', 1, 'bridge'], 'banded-monster-walk': ['stand', 1, 'monster'], 'prone-y-t-w-raise': ['lie', 1, 'ytw'],
+  'dead-bug': ['lie', 1, 'deadbug'], 'bird-dog': ['quad', 1, 'birddog'], 'jump-rope': ['stand', 1, 'rope'],
+  'kneeling-hip-flexor-stretch': ['kneel', 2, 'hipflexor'], 'couch-stretch': ['kneel', 3, 'hipflexor'], 'pigeon-stretch': ['seat', 3, 'glute'],
+  'figure-4-stretch': ['lie', 1, 'glute'], 'knee-across-the-body': ['lie', 1, 'glutetwist'], '90-90-hamstring-stretch': ['lie', 2, 'ham'],
+  'seated-hamstring-stretch': ['seat', 2, 'ham'], 'standing-hamstring-and-calf-stretch': ['stand', 1, 'ham'], 'straddle-stretch': ['seat', 2, 'straddle'],
+  'butterfly-stretch': ['seat', 1, 'butterfly'], 'wall-calf-stretch': ['stand', 1, 'calf'], 'soleus-stretch': ['stand', 1, 'soleus'],
+  'side-lying-quad-stretch': ['lie', 1, 'quad'], 'childs-pose': ['kneel', 1, 'childs'], 'wall-lat-stretch': ['stand', 1, 'lat'],
+  'doorway-chest-stretch': ['stand', 1, 'chest'], 'cross-body-shoulder-stretch': ['stand', 1, 'rearshoulder'], 'overhead-triceps-stretch': ['stand', 1, 'triceps'],
+  'seated-spinal-twist': ['seat', 1, 'twist'], 'upper-back-stretch': ['stand', 1, 'upperback'], 'standing-side-bend': ['stand', 1, 'sidebend'],
+  'knees-to-chest': ['lie', 1, 'kneeschest'], 'wrist-and-forearm-stretch': ['kneel', 1, 'wrist'], 'overhead-reach': ['stand', 1, 'reach'],
+  'foam-roll-quads': ['lie', 2, 'r-quad'], 'foam-roll-hamstrings': ['seat', 2, 'r-ham'], 'foam-roll-calves': ['seat', 2, 'r-calf'],
+  'foam-roll-upper-back': ['lie', 2, 'r-ub'], 'foam-roll-lats': ['lie', 2, 'r-lat'], 'foam-roll-outer-thigh': ['lie', 3, 'r-it'],
+  'foam-roll-glutes': ['seat', 2, 'r-glute'], 'foam-roll-adductors': ['lie', 2, 'r-add'],
+  'hip-cars': ['stand', 1, 'hipcars'], 'shoulder-cars': ['stand', 1, 'shcars'], 'quadruped-scapular-cars': ['quad', 1, 'scapcars'],
+  'thread-the-needle': ['quad', 1, 'thread'], 'knee-to-wall-ankle-rocks': ['kneel', 1, 'anklerock'], 'adductor-rock-back': ['quad', 1, 'addrock'],
+  'wall-slides': ['stand', 1, 'wallslide'], 'shinbox-get-up': ['seat', 2, 'shinbox'], 'a-skip': ['stand', 2, 'askip'],
+  'pogo-hops': ['stand', 2, 'pogo'], 'slow-high-knee-march': ['stand', 1, 'march'], 'single-leg-balance-reach': ['stand', 1, 'balance'],
+  'bretzel-stretch': ['lie', 2, 'bretzel'], 'frog-stretch': ['quad', 3, 'frog'], 'lizard-stretch': ['kneel', 3, 'lizard'],
+  'puppy-pose': ['kneel', 1, 'puppy'], 'supine-twist': ['lie', 1, 'twist'], 'weighted-straddle-fold': ['seat', 2, 'straddle'],
+  'crocodile-breathing': ['lie', 1, 'breath'], '90-90-box-breathing': ['lie', 1, 'breath'], 'legs-up-the-wall': ['lie', 1, 'breath'],
+  'standing-hip-flexor-stretch': ['stand', 1, 'hipflexor'], 'chin-tucks': ['chair', 1, 'neck'], 'standing-t-spine-rotation': ['stand', 1, 'rotstand'],
+  'chair-thoracic-extension': ['chair', 1, 'textension'], 'seated-figure-4-stretch': ['chair', 1, 'glute'], 'neck-side-stretch': ['chair', 1, 'neckside'],
+  'supine-figure-4-stretch': ['lie', 1, 'glute'], 'happy-baby': ['lie', 1, 'happybaby'], 'reclined-butterfly': ['lie', 1, 'butterfly'],
+};
+const POS_RANK = { stand: 0, chair: 0.5, kneel: 1, quad: 1.5, seat: 2, lie: 3 };
+const meta = id => { const m = MOVE[id]; return m ? { pos: m[0], int: m[1], fam: m[2] } : { pos: 'stand', int: 2, fam: id }; };
+const isDyn = ex => !ex.tags.some(t => ['stretch', 'smr', 'breath'].includes(t)) && ex.tags.some(t => ['mobility', 'cars', 'prep'].includes(t)) && !ex.tags.some(t => ['cond', 'power', 'lmob', 'lateral'].includes(t));
+// Phase pools
+const POOLS = {
+  dyn: ex => !!MOVE[ex.id] && isDyn(ex) && !ex.tags.includes('core'),
+  stretch: ex => !!MOVE[ex.id] && ex.tags.includes('stretch') && !ex.tags.includes('breath') && !ex.tags.includes('vpull'),
+  breath: ex => ex.tags.includes('breath'),
+  smr: ex => ex.tags.includes('smr'),
+  raise: ex => ex.tags.includes('prep') && (ex.tags.includes('cond') || ['skips', 'butt-kicks', 'jump-rope', 'star-jumps'].includes(ex.id)) && !ex.tags.includes('lateral'),
+  activate: ex => ex.tags.includes('prep') && ex.tags.some(t => ['prehab', 'glutes', 'core'].includes(t)) && !ex.tags.includes('stretch') && !ex.tags.includes('power'),
+  potentiate: ex => ex.tags.includes('power') && ex.tier === 1 && ex.eq.includes('bw') && !ex.tags.includes('cond') || ['pogo-hops', 'a-skip'].includes(ex.id),
+};
+/* Recipes. phase: { pool, share (of the time) or n, pos (allowed), maxInt, hold (secs for timed moves), focus } */
 const ROUTINES = [
-  { id: 'wake', when: 'morning', name: 'Morning Wake-Up', mins: 8, focus: ['tspine', 'hips', 'back', 'shoulders'], type: 'dynamic', blurb: 'Get every joint moving — no equipment.' },
-  { id: 'quick5', when: 'morning', name: '5-Minute Reset', mins: 5, focus: ['hips', 'tspine', 'hams'], type: 'dynamic', blurb: 'The minimum dose. Do it while the kettle boils.' },
-  { id: 'desk', when: 'anytime', name: 'Desk Reset', mins: 6, focus: ['tspine', 'chest', 'hips', 'shoulders'], type: 'mix', blurb: 'Undo sitting — hip flexors, upper back, chest.' },
-  { id: 'pre', when: 'anytime', name: 'Pre-Workout Primer', mins: 8, focus: ['hips', 'ankles', 'shoulders', 'tspine'], type: 'dynamic', blurb: 'Before training, a run or sport.' },
-  { id: 'post', when: 'anytime', name: 'Post-Workout Stretch', mins: 8, focus: ['hips', 'hams', 'quads', 'chest', 'calves'], type: 'static', blurb: 'Static holds to come back down.' },
-  { id: 'evening', when: 'evening', name: 'Evening Unwind', mins: 12, focus: ['hips', 'hams', 'back', 'groin'], type: 'mix', blurb: 'Slow flow into long holds.' },
-  { id: 'bed', when: 'evening', name: 'Before Bed', mins: 10, focus: ['back', 'hips', 'hams'], type: 'static', breath: true, blurb: 'Gentle holds and slow breathing to switch off.' },
-  { id: 'hips', when: 'target', name: 'Hips & Hamstrings', mins: 12, focus: ['hips', 'hams', 'groin', 'glutes'], type: 'mix', blurb: 'Tight hips, low back and hamstrings.' },
-  { id: 'upper', when: 'target', name: 'Shoulders & Upper Back', mins: 10, focus: ['shoulders', 'tspine', 'chest', 'lats'], type: 'mix', blurb: 'Open the chest, free the T-spine.' },
-  { id: 'ankles', when: 'target', name: 'Ankles & Calves', mins: 8, focus: ['ankles'], type: 'mix', blurb: 'Better squats and happier knees.' },
-  { id: 'full', when: 'target', name: 'Full-Body Flow', mins: 15, focus: ['hips', 'tspine', 'hams', 'shoulders', 'ankles', 'groin'], type: 'mix', blurb: 'Head-to-toe mobility session.' },
-  { id: 'roll', when: 'target', name: 'Foam Roll Recovery', mins: 10, focus: ['quads', 'hams', 'calves', 'tspine', 'glutes'], type: 'smr', blurb: 'Self-massage plus a few holds.', needs: 'roller' },
+  { id: 'wake', when: 'morning', name: 'Morning Wake-Up', mins: 8, order: 'up', focus: ['tspine', 'hips', 'back', 'shoulders'], blurb: 'Rise from the floor to standing, one joint at a time.',
+    phases: [{ pool: 'dyn', share: .35, pos: ['lie', 'seat'], maxInt: 2 }, { pool: 'dyn', share: .3, pos: ['quad', 'kneel'], maxInt: 2 }, { pool: 'dyn', share: .35, pos: ['stand'], maxInt: 2 }] },
+  { id: 'quick5', when: 'morning', name: '5-Minute Reset', mins: 5, order: 'up', focus: ['hips', 'tspine', 'hams'], blurb: 'The minimum dose. Do it while the kettle boils.',
+    phases: [{ pool: 'dyn', share: .45, pos: ['lie', 'quad', 'kneel'], maxInt: 2 }, { pool: 'dyn', share: .55, pos: ['stand'], maxInt: 2 }] },
+  { id: 'desk', when: 'anytime', name: 'Desk Reset', mins: 6, order: 'any', strict: true, focus: ['tspine', 'neck', 'chest', 'hips', 'shoulders', 'glutes'], blurb: 'Standing or in your chair — undo the sitting.',
+    phases: [{ pool: 'dyn', share: .5, pos: ['chair', 'stand'], maxInt: 1 }, { pool: 'stretch', share: .5, pos: ['chair', 'stand'], maxInt: 1, hold: 30 }] },
+  { id: 'pre', when: 'anytime', name: 'Pre-Workout Primer', mins: 8, order: 'up', focus: ['hips', 'ankles', 'shoulders', 'tspine'], blurb: 'Raise, activate, mobilise, prime — the RAMP warm-up.',
+    phases: [{ pool: 'raise', n: 1, hold: 60, label: 'Raise' }, { pool: 'activate', n: 2, label: 'Activate' }, { pool: 'dyn', share: .45, maxInt: 2, label: 'Mobilise' }, { pool: 'potentiate', n: 1, label: 'Prime' }] },
+  { id: 'post', when: 'anytime', name: 'Post-Workout Stretch', mins: 8, order: 'down', focus: ['hips', 'hams', 'quads', 'chest', 'calves', 'lats'], blurb: 'One stretch per area, then let your breathing settle.',
+    phases: [{ pool: 'stretch', share: .85, maxInt: 3, hold: 40 }, { pool: 'breath', n: 1, hold: 60 }] },
+  { id: 'evening', when: 'evening', name: 'Evening Unwind', mins: 12, order: 'down', quiet: true, focus: ['hips', 'hams', 'back', 'groin', 'tspine'], blurb: 'A slow flow into long, easy holds.',
+    phases: [{ pool: 'dyn', share: .3, maxInt: 1 }, { pool: 'stretch', share: .55, maxInt: 2, hold: 60, pos: ['kneel', 'quad', 'seat', 'lie'] }, { pool: 'breath', n: 1, hold: 90 }] },
+  { id: 'bed', when: 'evening', name: 'Before Bed', mins: 10, order: 'down', quiet: true, focus: ['back', 'hips', 'glutes', 'groin', 'hams'], blurb: 'Gentle holds that only get lower, ending in slow breathing.',
+    phases: [{ pool: 'stretch', share: .72, maxInt: 1, hold: 70, pos: ['kneel', 'quad', 'seat', 'lie'] }, { pool: 'breath', n: 1, hold: 150, pos: ['lie'] }] },
+  { id: 'hips', when: 'target', name: 'Hips & Hamstrings', mins: 12, order: 'down', strict: true, focus: ['hips', 'hams', 'groin', 'glutes'], blurb: 'Tight hips, low back and hamstrings.',
+    phases: [{ pool: 'dyn', share: .45, maxInt: 2 }, { pool: 'stretch', share: .55, maxInt: 3, hold: 45 }] },
+  { id: 'upper', when: 'target', name: 'Shoulders & Upper Back', mins: 10, order: 'down', strict: true, focus: ['shoulders', 'tspine', 'chest', 'lats', 'neck'], blurb: 'Open the chest, free the upper back.',
+    phases: [{ pool: 'dyn', share: .5, maxInt: 2 }, { pool: 'stretch', share: .5, maxInt: 2, hold: 40 }] },
+  { id: 'ankles', when: 'target', name: 'Ankles & Calves', mins: 8, order: 'down', strict: true, focus: ['ankles', 'calves'], blurb: 'Better squats and happier knees.',
+    phases: [{ pool: 'dyn', share: .5, maxInt: 2 }, { pool: 'stretch', share: .5, maxInt: 2, hold: 45 }] },
+  { id: 'full', when: 'target', name: 'Full-Body Flow', mins: 15, order: 'down', focus: ['hips', 'tspine', 'hams', 'shoulders', 'ankles', 'groin'], blurb: 'Head-to-toe mobility session.',
+    phases: [{ pool: 'dyn', share: .5, maxInt: 2, order: 'up' }, { pool: 'stretch', share: .45, maxInt: 2, hold: 45 }, { pool: 'breath', n: 1, hold: 60 }] },
+  { id: 'roll', when: 'target', name: 'Foam Roll Recovery', mins: 10, order: 'down', needs: 'roller', focus: ['quads', 'hams', 'calves', 'tspine', 'glutes'], blurb: 'Self-massage, then a few holds.',
+    phases: [{ pool: 'smr', share: .65, order: 'down' }, { pool: 'stretch', share: .35, maxInt: 2, hold: 40, order: 'down' }] },
 ];
 const WHEN = {
   morning: ['Morning', 'Wake up and loosen up'],
@@ -729,6 +797,81 @@ const WHEN = {
   evening: ['Evening', 'Wind down and recover'],
   target: ['Target an area', 'Spend time where you need it'],
 };
+// Prescription for a move inside a routine
+function routineRx(id, ph) {
+  const r = rx({ ex: id }, null);
+  if (r.unit === 'sec' && ph.hold) r.n = ph.hold;
+  if (r.unit === 'm') { r.unit = 'sec'; r.n = ph.hold || 30; }
+  return r;
+}
+const entrySecs = e => { const st = stepSecs(e.r); return (st.secs + 6) * (st.side ? 2 : 1); };
+/* Build a routine: pick per phase by focus, intensity, position and family; order by position; fit to time. */
+function buildRoutine(R, seed) {
+  const rnd = rng(seed), ctx = ctxFor(S.settings, seed), fams = new Set(), used = new Set(), covered = {};
+  const focus = R.focus.flatMap(f => f === 'ankles' ? ['ankles', 'calves'] : [f]);
+  const target = R.mins * 60;
+  const out = [];
+  for (const ph of R.phases) {
+    const pool = EX.filter(ex => POOLS[ph.pool](ex) && avail(ex, ctx) && !used.has(ex.id) && !fams.has(meta(ex.id).fam)
+      && (!ph.maxInt || meta(ex.id).int <= ph.maxInt) && (!ph.pos || ph.pos.includes(meta(ex.id).pos))
+      && (!R.strict || ph.pool === 'breath' || ex.tags.some(t => focus.includes(t))));
+    const sc = ex => {
+      let s = rnd() * 0.8 + ex.tags.filter(t => focus.includes(t)).length * 1.4;
+      s -= ex.tags.reduce((a, t) => a + (covered[t] || 0), 0) * 0.7; // spread across areas
+      if (ph.maxInt === 1 && meta(ex.id).int === 1) s += 0.3;
+      if (!ex.img.length) s -= 0.15;
+      if (ph.pool !== 'breath' && ph.pool !== 'raise' && ph.pool !== 'potentiate' && !ex.tags.some(t => focus.includes(t))) s -= 1.5; // off-target filler
+      if (R.order === 'up' && ph.pool === 'dyn' && meta(ex.id).pos === 'lie') s += 0.2;
+      return s;
+    };
+    const budget = ph.share ? ph.share * target : Infinity;
+    let t = 0, n = 0;
+    const picked = [];
+    while (pool.length && (ph.n ? n < ph.n : t < budget - 15)) {
+      pool.sort((a, b) => sc(b) - sc(a));
+      const ex = pool.shift();
+      if (fams.has(meta(ex.id).fam)) continue;
+      const e = { ex: ex.id, r: routineRx(ex.id, ph), ph };
+      if (!ph.n && t > 0 && t + entrySecs(e) > budget + 40) break;
+      picked.push(e); used.add(ex.id); fams.add(meta(ex.id).fam); ex.tags.forEach(x => covered[x] = (covered[x] || 0) + 1);
+      t += entrySecs(e); n++;
+    }
+    const dir = ph.order || R.order;
+    if (dir !== 'any') picked.sort((a, b) => (POS_RANK[meta(a.ex).pos] - POS_RANK[meta(b.ex).pos]) * (dir === 'up' ? -1 : 1));
+    out.push(...picked);
+  }
+  // wind-down routines only ever get lower: sort everything (moving drills first at each level), breathing last
+  if (R.order === 'down' && !R.phases.some(p => p.order)) {
+    const br = out.filter(e => e.ph.pool === 'breath'), rest = out.filter(e => e.ph.pool !== 'breath');
+    rest.sort((a, b) => (POS_RANK[meta(a.ex).pos] - POS_RANK[meta(b.ex).pos]) || ((a.ph.pool === 'dyn' ? 0 : 1) - (b.ph.pool === 'dyn' ? 0 : 1)));
+    out.length = 0; out.push(...rest, ...br);
+  }
+  // fit: if short, lengthen timed holds first, then add slow reps
+  let tot = out.reduce((a, e) => a + entrySecs(e), 0), guard = 0;
+  while (tot < target - 45 && guard++ < 12) {
+    let grew = false;
+    for (const e of out) {
+      if (tot >= target - 45) break;
+      if (e.r.unit === 'sec' && e.ph.pool !== 'raise' && e.r.n < (e.ph.pool === 'breath' ? 240 : 90)) { e.r.n += 15; grew = true; }
+      else if (e.r.unit === 'reps' && e.r.n < 12 && e.ph.pool === 'dyn') { e.r.n += 2; grew = true; }
+      tot = out.reduce((a, x) => a + entrySecs(x), 0);
+    }
+    if (!grew) break;
+  }
+  return out.map(({ ex, r, ph }) => ({ ex, r, label: ph.label || '' }));
+}
+const weekSeed = id => hash(id + mondayOfDate(new Date()).toDateString());
+function mondayOfDate(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+const routineCache = {};
+function routineEntries(r) { const k = r.id + weekSeed(r.id) + S.settings.eq.join(); return routineCache[k] || (routineCache[k] = buildRoutine(r, weekSeed(r.id))); }
+function routineIds(r) { return routineEntries(r).map(e => e.ex); }
+function routineMins(entries) { return Math.max(1, Math.round(entries.reduce((a, e) => a + entrySecs(e), 0) / 60)); }
+// "Build your own" from the Mobility tab
+function customRoutine(m) {
+  const ph = m.type === 'dynamic' ? [{ pool: 'dyn', share: 1, maxInt: 2 }] : m.type === 'static' ? [{ pool: 'stretch', share: .9, maxInt: 3, hold: 45 }, { pool: 'breath', n: 1, hold: 60 }]
+    : [{ pool: 'dyn', share: .5, maxInt: 2, order: 'up' }, { pool: 'stretch', share: .5, maxInt: 3, hold: 40 }];
+  return { id: 'custom', name: `Custom ${m.mins}-min flow`, mins: m.mins, order: 'down', focus: m.focus, phases: ph };
+}
 // What to suggest right now
 function routineNow(d = new Date()) {
   const h = d.getHours();
@@ -736,9 +879,8 @@ function routineNow(d = new Date()) {
   return ROUTINES.find(r => r.id === id);
 }
 function partOfDay(d = new Date()) { const h = d.getHours(); return h < 5 ? 'night' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 22 ? 'evening' : 'night'; }
-function routineIds(r) { return buildFlow(r, hash(r.id + new Date().toDateString())); }
 function hash(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
-const FOCUS_OPTS = [['hips', 'Hips'], ['hams', 'Hamstrings'], ['groin', 'Groin'], ['ankles', 'Ankles & calves'], ['tspine', 'T-spine'], ['shoulders', 'Shoulders'], ['back', 'Low back'], ['quads', 'Quads']];
+const FOCUS_OPTS = [['hips', 'Hips'], ['hams', 'Hamstrings'], ['groin', 'Groin'], ['ankles', 'Ankles & calves'], ['tspine', 'T-spine'], ['shoulders', 'Shoulders'], ['back', 'Low back'], ['quads', 'Quads'], ['neck', 'Neck']];
 
 function itemSecs(ex) { return stepSecs(rx({ ex: ex.id }, null)); }
 function buildFlow(opts, seed) {
