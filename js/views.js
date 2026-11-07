@@ -3,10 +3,21 @@
 /* =========================================================
    UI helpers
    ========================================================= */
+// which category colour an exercise's tile takes
+function exCat(ex) {
+  const t = ex.tags || [];
+  if (t.includes('breath') || t.includes('stretch') || t.includes('smr')) return 'recovery';
+  if (t.includes('power')) return 'athletic';
+  if (t.includes('cond')) return 'engine';
+  if (t.includes('cars') || t.includes('lmob') || t.includes('mobility') || t.includes('control') || (t.includes('prep') && !t.some(x => ['squat', 'hinge', 'hpush', 'hpull', 'vpush', 'vpull'].includes(x)))) return 'mobility';
+  if (ex.eq && ex.eq.length === 1 && ex.eq[0] === 'kb') return 'kb';
+  return 'strength';
+}
 function ph(ex, cls = '', anim = false, badge = '') {
   if (!ex) return '';
-  if (!ex.img.length) return `<div class="ph ${cls}"><div class="nophoto"><div>${ICON.fig}${anim ? `<a class="ytlink" href="${ytUrl(ex.name)}" target="_blank" rel="noopener">${ICON.yt} Watch demos</a>` : ''}</div></div>${badge}</div>`;
-  return `<div class="ph ${cls} ${anim ? 'anim' : ''}" ${anim ? 'data-act="flip"' : ''}><img src="${ex.img[0]}" alt="" loading="lazy" decoding="async">${anim && ex.img[1] ? `<img class="f2" src="${ex.img[1]}" alt="" loading="lazy" decoding="async">` : ''}${badge}</div>`;
+  const st = `style="--c:${cvar(exCat(ex))}"`;
+  if (!ex.img.length) return `<div class="ph ${cls}" ${st}><div class="nophoto"><div>${ICON.fig}${anim ? `<a class="ytlink" href="${ytUrl(ex.name)}" target="_blank" rel="noopener">${ICON.yt} Watch demos</a>` : ''}</div></div>${badge}</div>`;
+  return `<div class="ph ${cls} ${anim ? 'anim' : ''}" ${st} ${anim ? 'data-act="flip"' : ''}><img src="${ex.img[0]}" alt="" loading="lazy" decoding="async">${anim && ex.img[1] ? `<img class="f2" src="${ex.img[1]}" alt="" loading="lazy" decoding="async">` : ''}${badge}</div>`;
 }
 function tierDots(t) { return `<span class="tier" title="${TIER[t]}">${[1, 2, 3].map(i => `<i class="${i <= t ? 'on' : ''}"></i>`).join('')}</span>`; }
 function setTop(html) { $('#topbar').innerHTML = html; }
@@ -70,11 +81,11 @@ const mondayOf = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate
 const histCat = h => h.cat || (h.kind === 'mobility' ? 'mobility' : 'strength');
 const isMob = c => c === 'mobility' || c === 'recovery';
 function thumbsOf(sess, n = 6) { return sess.blocks.filter(b => b.fmt !== 'note').flatMap(b => b.items).filter(it => BY[it.ex]).slice(0, n); }
-function sessCard(sess, href, eyebrow, done, extra = '') {
+function sessCard(sess, href, eyebrow, done, extra = '', mins = null) {
   const c = catOf(sess);
   return `<a class="card daycard ${done ? 'done' : ''}" href="${href}" style="--c:${cvar(c)}">
-    <div class="row"><div class="grow"><div class="eyebrow"><span class="cdot"></span>${eyebrow}</div><div class="title">${esc(sess.name)}</div>${sess.focus ? `<div class="muted small">${esc(sess.focus)}</div>` : ''}</div>${done ? '<span class="pill-done">DONE</span>' : extra}</div>
-    <div class="strip">${thumbsOf(sess).map(it => ph(BY[it.ex])).join('')}</div>
+    <div class="row" style="align-items:flex-start"><div class="grow"><div class="eyebrow">${eyebrow}</div><div class="title">${esc(sess.name)}</div>${sess.focus ? `<div class="muted small" style="margin-top:4px">${esc(sess.focus)}</div>` : ''}</div>${done ? '<span class="pill-done">Done</span>' : mins ? `<div class="bignum sm">${mins}<small>min</small></div>` : ''}</div>
+    <div class="row" style="margin-top:14px;align-items:flex-end"><div class="strip grow" style="margin-top:0">${thumbsOf(sess).map(it => ph(BY[it.ex])).join('')}</div>${extra}</div>
   </a>`;
 }
 function activeCard() {
@@ -97,8 +108,7 @@ function routineHero(r, label) {
   const ids = routineIds(r), night = ['evening', 'night'].includes(partOfDay());
   return `<div class="card hero" style="--c:${cvar(WHEN_CAT[r.when] || 'mobility')}">
     <div class="eyebrow cc">${night ? ICON.moon : ICON.sun} ${label}</div>
-    <div class="title" style="margin-top:6px">${esc(r.name)}</div>
-    <div class="muted small">${r.mins} min · ${ids.length} moves · ${esc(r.blurb)}</div>
+    <div class="row" style="align-items:flex-end;margin-top:10px;gap:14px"><div class="grow"><div class="title">${esc(r.name)}</div><div class="muted small" style="margin-top:6px">${esc(r.blurb)}</div></div><div class="bignum" style="color:var(--c)">${r.mins}<small>min</small></div></div>
     <div class="strip">${ids.slice(0, 6).map(id => ph(BY[id])).join('')}</div>
     <div class="row" style="margin-top:12px"><button class="btn cbtn grow" data-act="routineGo" data-id="${r.id}">${PLAY} Start</button><button class="btn ghost" data-act="routine" data-id="${r.id}">Preview</button></div>
   </div>`;
@@ -107,7 +117,7 @@ const QUICK_PICKS = [['control', 30], ['recovery', 20], ['strength', 45], ['engi
 function quickPicks() {
   const eq = S.ui.quick.eq || S.settings.eq;
   return `<div class="picks">${QUICK_PICKS.filter(([k]) => !RECIPES[k].needs || eq.includes(RECIPES[k].needs)).map(([k, m]) => { const R = RECIPES[k]; return `<button class="pick" data-act="qpick" data-k="${k}" data-m="${m}" style="--c:${cvar(R.cat)}"><b><span class="cdot"></span>${R.name}</b><span>${m} min</span></button>`; }).join('')}
-    <button class="pick" data-act="goQuick" style="--c:var(--c-custom)"><b><span class="cdot"></span>Custom…</b><span>pick focus & time</span></button></div>`;
+    <button class="pick" data-act="goQuick" style="--c:var(--c-custom)"><b><span class="cdot"></span>Custom</b><span>Your call</span></button></div>`;
 }
 
 /* ---------- Today ---------- */
@@ -120,16 +130,16 @@ VIEWS.today = () => {
     const w = P.week, i = P.days.findIndex((d, j) => !P.done['w' + w + 'd' + j]);
     if (i >= 0) {
       const d = P.days[i];
-      train = sessCard(d, `#/s/p${i}`, `Plan · Week ${w} · Day ${i + 1} · ~${estimate(d, w)} min`, false, `<button class="btn sm cbtn" data-act="startSess" data-r="p${i}">${PLAY} Start</button>`);
-    } else train = `<div class="card" style="--c:var(--c-strength)"><div class="eyebrow cc">Plan · Week ${w}</div><div class="title" style="margin-top:4px">Week complete ✓</div><div class="muted small">Great work. ${w < BLOCK_WEEKS ? 'Move on to the next week when you’re ready — or keep things moving with mobility.' : 'Block finished — start a fresh one in Workouts.'}</div>${w < BLOCK_WEEKS ? `<button class="btn sm cbtn" style="margin-top:10px" data-act="week" data-d="1">Start week ${w + 1}</button>` : ''}</div>`;
+      train = sessCard(d, `#/s/p${i}`, `Week ${w}, day ${i + 1} of your plan`, false, `<button class="btn sm cbtn" data-act="startSess" data-r="p${i}">${PLAY} Start</button>`, estimate(d, w));
+    } else train = `<div class="card" style="--c:var(--c-strength)"><div class="eyebrow cc">Week ${w} of your plan</div><div class="title" style="margin-top:4px">Week complete ✓</div><div class="muted small">Great work. ${w < BLOCK_WEEKS ? 'Move on to the next week when you’re ready — or keep things moving with mobility.' : 'Block finished — start a fresh one in Workouts.'}</div>${w < BLOCK_WEEKS ? `<button class="btn sm cbtn" style="margin-top:10px" data-act="week" data-d="1">Start week ${w + 1}</button>` : ''}</div>`;
   } else train = `<div class="card phase"><div class="eyebrow">No plan yet</div><div class="title" style="margin-top:4px;font-weight:800;font-size:17px">Want structure?</div><div class="muted small">Set up a 6-week plan — or just grab a one-off session below.</div><a class="btn pri sm" style="margin-top:10px" href="#/setup">Build a plan</a></div>`;
   $('#view').innerHTML = `${activeCard()}
-    ${routineHero(routineNow(), 'Mobility · right now')}
+    ${routineHero(routineNow(), 'Mobility for right now')}
     <div class="h2">Training</div>
     ${train}
     <div class="h2">Or do something else</div>
     ${quickPicks()}
-    ${S.quick ? `<div style="margin-top:12px">${sessCard(S.quick, '#/s/q', `Last generated · ~${estimate(S.quick)} min`)}</div>` : ''}
+    ${S.quick ? `<div style="margin-top:12px">${sessCard(S.quick, '#/s/q', 'Last generated', false, '', estimate(S.quick))}</div>` : ''}
     <div class="h2">Consistency</div>
     ${weekStrip()}`;
 };
@@ -160,21 +170,21 @@ VIEWS.workouts = () => {
           <div class="segs" style="margin:14px 0 12px">${Array.from({ length: BLOCK_WEEKS }, (_, i) => `<i class="${i + 1 < w ? 'on' : i + 1 === w ? 'cur' : ''}"></i>`).join('')}</div>
           <div class="small" style="color:#cfd8c2">${ph_.note}</div>
         </div>
-        ${days.map(([d, i]) => sessCard(d, `#/s/p${i}`, `Day ${i + 1} · ~${estimate(d, w)} min`, P.done['w' + w + 'd' + i])).join('')}
+        ${days.map(([d, i]) => sessCard(d, `#/s/p${i}`, `Day ${i + 1}`, P.done['w' + w + 'd' + i], '', estimate(d, w))).join('')}
         ${w >= BLOCK_WEEKS ? `<button class="btn ghost block" style="margin-top:12px" data-act="newBlock">Start a fresh 6-week block</button>` : ''}`;
       }
     } else if (f === 'all' || f === 'plan') {
       html += `<div class="h2">Your plan</div><div class="card phase"><div class="muted small">A 6-week block that eases you back in, then builds — warm-ups, power, strength, conditioning and stretching.</div><a class="btn pri sm" style="margin-top:10px" href="#/setup">Build my plan</a></div>`;
     }
   }
-  if (f !== 'plan' && f !== 'mine' && S.quick && wfMatch(f, catOf(S.quick))) { n++; html += `<div class="h2">Last generated</div>${sessCard(S.quick, '#/s/q', `~${estimate(S.quick)} min`)}`; }
+  if (f !== 'plan' && f !== 'mine' && S.quick && wfMatch(f, catOf(S.quick))) { n++; html += `<div class="h2">Last generated</div>${sessCard(S.quick, '#/s/q', CAT[catOf(S.quick)], false, '', estimate(S.quick))}`; }
   if (f !== 'plan') {
     const mine = S.saved.filter(t => wfMatch(f, catOf(t)));
     n += mine.length;
-    html += `<div class="h2">My workouts</div>` + (mine.length ? mine.map(t => sessCard(t, `#/s/t${t.id}`, `~${estimate(t)} min · ${t.blocks.length} blocks`)).join('')
+    html += `<div class="h2">My workouts</div>` + (mine.length ? mine.map(t => sessCard(t, `#/s/t${t.id}`, `${CAT[catOf(t)]}, ${t.blocks.length} blocks`, false, '', estimate(t))).join('')
       : `<div class="card muted small">Save any session here to reuse it, tap <b>Blank</b> to build one from scratch, or customise a mobility routine.</div>`);
   }
-  if (f === 'mobility' || f === 'recovery') html += `<a class="card daycard" href="#/mobility" style="--c:var(--c-mobility);margin-top:12px"><div class="eyebrow"><span class="cdot"></span>Guided routines</div><div class="title">Mobility routines →</div><div class="muted small">Morning, desk, evening and bedtime flows.</div></a>`;
+  if (f === 'mobility' || f === 'recovery') html += `<a class="card daycard" href="#/mobility" style="--c:var(--c-mobility);margin-top:12px"><div class="eyebrow"><span class="cdot"></span>Guided routines</div><div class="title">Mobility routines</div><div class="muted small">Morning, desk, evening and bedtime flows.</div></a>`;
   $('#view').innerHTML = html;
 };
 VIEWS.plan = () => go('#/workouts', { replace: true });
@@ -204,7 +214,7 @@ VIEWS.s = (ref) => {
   if (!sess) { go('#/' + lastMain); return; }
   const w = weekOf(ref), isPlan = ref[0] === 'p';
   setTop(`<a class="icon-btn" href="#/${lastMain}" data-nav="back" aria-label="Back" data-act="endEdit">${ICON.back}</a>
-    <div class="grow" style="min-width:0"><div class="sub" style="color:${cvar(catOf(sess))}">${CAT[catOf(sess)]} · ${sessRefLabel(ref)}${w ? ' · Week ' + w : ''} · ~${estimate(sess, w)} min</div><div style="font-weight:800;font-size:19px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sess.name)}</div></div>
+    <div class="grow" style="min-width:0"><div class="sub" style="color:${cvar(catOf(sess))}">${sessRefLabel(ref)}${w ? ', week ' + w : ''}</div><div class="stitle">${esc(sess.name)} <span>${estimate(sess, w)} min</span></div></div>
     ${isPlan ? `<button class="icon-btn" data-act="shuffleDay" data-i="${ref.slice(1)}" aria-label="Shuffle exercises">${ICON.shuffle}</button>` : ''}
     ${ref === 'q' ? `<button class="icon-btn" data-act="qregen" aria-label="Regenerate">${ICON.shuffle}</button>` : ''}
     <button class="icon-btn ${EDITING ? 'on' : ''}" data-act="toggleEdit" aria-label="Edit">${EDITING ? ICON.check : ICON.edit}</button>`);
