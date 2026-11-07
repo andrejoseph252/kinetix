@@ -264,7 +264,6 @@ VIEWS.faith = () => {
       ${L.note ? `<div class="muted small" style="margin-top:4px">${esc(L.note)}</div>` : ''}
       <a class="btn sm ghost" style="margin-top:14px" href="${massReadingsUrl()}" target="_blank" rel="noopener">Today’s Mass readings</a>
     </div>
-    ${ORN}
     <div class="h2 row"><span class="grow">Today</span><span class="small muted">${ps.filter(p => isDone(p.id)).length} of ${ps.length}</span></div>
     ${ps.length ? Object.keys(WHEN_LABEL).filter(w => groups[w]).map(w => `<div class="pgroup"><div class="eyebrow">${WHEN_LABEL[w]}</div><div class="plist">${groups[w].map(practiceRow).join('')}</div></div>`).join('') : `<div class="card muted small">Nothing scheduled today. <a href="#/faithsetup" style="text-decoration:underline">Choose your practices</a>.</div>`}
     <div class="card" style="margin-top:12px"><div class="eyebrow">This week</div><div class="wkstrip">${week}</div></div>
@@ -349,7 +348,7 @@ function rosarySteps(set) {
   M.list.forEach((m, i) => steps.push({ k: `Decade ${i + 1}`, title: m[0], html: `
       <div class="decbeads" aria-label="Decade ${i + 1} of 5">${[0, 1, 2, 3, 4].map(j => `<i class="${j < i ? 'on' : j === i ? 'cur' : ''}"></i>`).join('')}</div>
       <div class="rubric" style="margin-top:4px">The ${ord[i]} ${M.name} Mystery</div>
-      <p class="lead drop" style="margin-top:12px">${esc(m[5])}</p>
+      <p class="lead" style="margin-top:12px">${esc(m[5])}</p>
       <div class="fruit">Fruit of the mystery: <b>${esc(m[1])}</b></div>
       <a class="btn sm ghost" style="margin-top:12px" href="${NABRE(m[3], m[4])}" target="_blank" rel="noopener">Read ${esc(m[2])}</a>
       <div class="rubric" style="margin:18px 0 8px">Our Father on the large bead, a Hail Mary on each of the ten, then the Glory Be and the Fatima Prayer.</div>
@@ -361,11 +360,11 @@ function examenSteps() {
   const j = F().journal[dk()] || {};
   const ta = (k, ph) => `<textarea class="gnote" data-jn="${k}" placeholder="${ph}">${esc(j[k] || '')}</textarea>`;
   return [
-    { k: 'I', title: 'Become aware of God’s presence', html: `<p class="lead">Be still. Slow your breathing. God is here, and he looks at you with love. Ask the Holy Spirit to help you see your day as he sees it.</p><div class="breathe"><i></i><span>Breathe slowly. Take your time.</span></div>` },
-    { k: 'II', title: 'Review the day with gratitude', html: `<p class="lead">Walk back through today from waking up. Notice the gifts, big and small: people, moments, things that went right. Thank God for them.</p>${ta('gratitude', 'Today I’m grateful for…')}` },
-    { k: 'III', title: 'Pay attention to your feelings', html: `<p class="lead">Where did you feel close to God today, with peace, joy or love? Where did you feel far from him, restless, anxious or closed off? Don’t judge it, just notice.</p>${ta('consolation', 'Closer to God when…')}${ta('desolation', 'Further from God when…')}` },
-    { k: 'IV', title: 'Choose one moment and pray from it', html: `<p class="lead">Pick one moment from today, good or hard, and talk to God about it. Give thanks, ask for healing, and where you fell short, ask for forgiveness.</p>${prayerBlock(['contrition'])}` },
-    { k: 'V', title: 'Look toward tomorrow', html: `<p class="lead">What’s coming tomorrow? Ask for the grace you’ll need. Choose one small, concrete resolution.</p>${ta('resolution', 'Tomorrow I will…')}<div class="muted small" style="margin-top:8px">You’ll see this on Today tomorrow morning.</div>` },
+    { k: 'Step 1 of 5', title: 'Become aware of God’s presence', html: `<p class="lead">Be still. Slow your breathing. God is here, and he looks at you with love. Ask the Holy Spirit to help you see your day as he sees it.</p><div class="breathe"><i></i><span>Breathe slowly. Take your time.</span></div>` },
+    { k: 'Step 2 of 5', title: 'Review the day with gratitude', html: `<p class="lead">Walk back through today from waking up. Notice the gifts, big and small: people, moments, things that went right. Thank God for them.</p>${ta('gratitude', 'Today I’m grateful for…')}` },
+    { k: 'Step 3 of 5', title: 'Pay attention to your feelings', html: `<p class="lead">Where did you feel close to God today, with peace, joy or love? Where did you feel far from him, restless, anxious or closed off? Don’t judge it, just notice.</p>${ta('consolation', 'Closer to God when…')}${ta('desolation', 'Further from God when…')}` },
+    { k: 'Step 4 of 5', title: 'Choose one moment and pray from it', html: `<p class="lead">Pick one moment from today, good or hard, and talk to God about it. Give thanks, ask for healing, and where you fell short, ask for forgiveness.</p>${prayerBlock(['contrition'])}` },
+    { k: 'Step 5 of 5', title: 'Look toward tomorrow', html: `<p class="lead">What’s coming tomorrow? Ask for the grace you’ll need. Choose one small, concrete resolution.</p>${ta('resolution', 'Tomorrow I will…')}<div class="muted small" style="margin-top:8px">You’ll see this on Today tomorrow morning.</div>` },
     { k: 'Close', title: 'Close in prayer', html: `<p class="lead">Rest a moment, then close with the Our Father.</p>${prayerBlock(['ourfather', 'glorybe'])}` },
   ];
 }
@@ -381,7 +380,6 @@ function renderGuide() {
     <div class="ov-top"><button class="icon-btn" data-act="gClose" aria-label="Close">${ICON.close}</button><div class="t"><b>${title}</b><span>${esc(s.k)}${GD.kind === 'rosary' ? ' · ' + esc(MYSTERIES[GD.set].name) : ''}</span></div></div>
     <div class="progress-dots">${GD.steps.map((_, i) => `<i class="${i < GD.i ? 'on' : i === GD.i ? 'cur' : ''}" style="--c:var(--c-faith)"></i>`).join('')}</div>
     <div class="ov-body">
-      ${GD.kind === 'examen' && /^[IVX]+$/.test(s.k) ? `<div class="rubric">${s.k}</div>` : ''}
       <h2 class="gtitle">${esc(s.title)}</h2>
       ${s.html}
     </div>
@@ -399,7 +397,7 @@ function finishGuide() {
 }
 function prayerSheet(key, pid) {
   const P = PRAYERS[key];
-  openSheet(`<div class="psheet"><h3>${esc(P[0])}</h3>${ORN}<p class="ptext">${prayerHTML(P[1])}</p></div>
+  openSheet(`<div class="psheet"><h3>${esc(P[0])}</h3><p class="ptext">${prayerHTML(P[1])}</p></div>
     ${pid ? `<button class="btn pri block" style="margin-top:16px" data-act="fMark" data-p="${pid}">${ICON.check} Prayed</button>` : ''}`);
 }
 function planPicker() {

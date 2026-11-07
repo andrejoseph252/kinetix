@@ -705,71 +705,47 @@ input:focus, textarea:focus { border-color: var(--text); }
 .prayers p { margin: 0 0 14px; line-height: 1.6; color: #e3dfd4; }
 .gnote { margin-top: 12px; height: 76px; }
 
-/* ---------- Faith: missal aesthetic ---------- */
+/* ---------- Faith: quiet, readable, consistent with the app ----------
+   One distinctive move: prayers and meditations are set in a book serif.
+   Everything else uses the app's normal system — no ornament. */
 @font-face { font-family: "EB Garamond"; src: url("../fonts/eb-garamond.woff2") format("woff2"); font-weight: 400 800; font-style: normal; font-display: swap; }
 @font-face { font-family: "EB Garamond"; src: url("../fonts/eb-garamond-italic.woff2") format("woff2"); font-weight: 400 800; font-style: italic; font-display: swap; }
-:root { --serif: "EB Garamond", "Iowan Old Style", "Palatino", Georgia, serif; --rubric: #e2685b; --gold: #e7c27d; --lc: #5fd28a; }
-/* candlelight: a warm glow tinted by the liturgical season */
-body.faith-mode { background:
-  radial-gradient(110% 48% at 50% -6%, color-mix(in srgb, var(--lc) 16%, #3a2a18) 0%, transparent 62%) fixed,
-  linear-gradient(#17141b, #121019) fixed; }
-body.faith-mode .topbar { background: rgba(23,20,27,.84); }
-body.faith-mode .topbar h1 { font-family: var(--serif); font-weight: 500; font-size: 34px; letter-spacing: .06em; font-variant: small-caps; }
-body.faith-mode .h2 { font-family: var(--serif); font-weight: 500; font-size: 22px; font-variant: small-caps; letter-spacing: .08em; color: var(--gold);
-  display: flex; align-items: center; gap: 12px; margin: 34px 0 14px; }
-body.faith-mode .h2::before, body.faith-mode .h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 45%, transparent)); }
-body.faith-mode .h2::after { transform: scaleX(-1); }
-body.faith-mode .h2.row > .grow { flex: none; }
-body.faith-mode .h2 .small { font-family: -apple-system, system-ui, sans-serif; font-variant: normal; letter-spacing: 0; color: var(--muted); }
-body.faith-mode .card, body.faith-mode .plist { background: #1e1a22; box-shadow: 0 0 0 1px rgba(231,194,125,.08) inset; }
-body.faith-mode .prow { background: transparent; }
-body.faith-mode .prow b { font-family: var(--serif); font-weight: 500; font-size: 19px; letter-spacing: .01em; }
-body.faith-mode .pgroup .eyebrow { font-family: var(--serif); font-style: italic; color: var(--rubric); font-size: 15px; }
-body.faith-mode .eyebrow { color: color-mix(in srgb, var(--gold) 75%, var(--muted)); }
-body.faith-mode .title, .lithero .title { font-family: var(--serif); font-weight: 500; letter-spacing: .01em; }
-.lithero { text-align: center; padding: 26px 18px 22px; border-radius: 26px; position: relative; overflow: hidden;
-  background: radial-gradient(90% 90% at 50% 0%, color-mix(in srgb, var(--lc) 20%, transparent), transparent 70%), #1e1a22; }
-.lithero::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--lc); }
-.lithero .title { font-size: 36px; line-height: 1.05; font-variant: small-caps; letter-spacing: .03em; }
-.lithero .litpill { justify-content: center; }
-.orn { display: flex; justify-content: center; margin: 18px 0 2px; }
-.orn svg { width: 22px; height: 22px; fill: none; stroke: var(--gold); stroke-width: 1.4; stroke-linecap: round; opacity: .8; }
-body.faith-mode .pchk { border-color: rgba(231,194,125,.35); }
-body.faith-mode .btn.pri { background: var(--gold); color: #1a1410; }
-body.faith-mode .btn.sm:not(.ghost):not(.pri):not(.fbtn) { background: rgba(231,194,125,.12); color: var(--gold); }
-body.faith-mode .chip.on { background: var(--gold); color: #1a1410; }
-body.faith-mode .wkstrip > div { background: #262129; }
-.scard .title { font-variant: normal; }
-.rubric { font-family: var(--serif); font-style: italic; color: var(--rubric); font-size: 16px; line-height: 1.45; }
-.rub { color: var(--rubric); font-style: normal; font-weight: 600; }
+:root { --serif: "EB Garamond", "Iowan Old Style", Palatino, Georgia, serif; --lc: #5fd28a; }
+.lithero { padding: 18px; border-radius: var(--r); background: var(--s1); }
+.lithero .title { font-size: 30px; }
+.litpill { color: var(--muted); font-weight: 600; }
+.orn { display: none; }
+.rubric { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.rub { color: var(--muted); font-weight: 600; }
 em.rub { font-style: italic; font-weight: 400; }
-/* guided prayer in the same book style */
-.overlay:has(.guide) { background: radial-gradient(110% 40% at 50% -5%, color-mix(in srgb, var(--lc) 16%, #3a2a18) 0%, transparent 60%), #15121a; }
-.guide .ov-top { background: transparent; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-.guide .gtitle { font-family: var(--serif); font-weight: 500; font-size: 40px; line-height: 1.05; letter-spacing: .01em; font-variant: small-caps; margin: 6px 0 14px; }
-.guide .lead { font-family: var(--serif); font-size: 21px; line-height: 1.5; color: #efe8da; }
-.guide .lead.drop::first-letter { float: left; font-size: 3.2em; line-height: .82; padding: 6px 8px 0 0; color: var(--gold); font-weight: 500; }
-.guide .fruit { font-family: var(--serif); font-size: 17px; clear: both; padding-top: 6px; }
-.guide .fruit b { color: var(--gold); font-weight: 500; font-style: italic; }
-.guide .progress-dots { gap: 10px; justify-content: center; margin: 6px 0 16px; }
-.guide .progress-dots i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: rgba(231,194,125,.22); }
-.guide .progress-dots i.on { background: rgba(231,194,125,.6); opacity: 1; }
-.guide .progress-dots i.cur { background: var(--gold); box-shadow: 0 0 0 4px rgba(231,194,125,.18); }
-.decbeads { display: flex; gap: 8px; margin: 2px 0 10px; }
-.decbeads i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid rgba(231,194,125,.5); }
-.decbeads i.on { background: rgba(231,194,125,.55); border-color: transparent; }
-.decbeads i.cur { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 10px rgba(231,194,125,.5); }
-.guide .gints { font-family: var(--serif); font-size: 18px; background: rgba(231,194,125,.08); }
-.prayers details { background: #1e1a22; box-shadow: 0 0 0 1px rgba(231,194,125,.08) inset; }
-.prayers summary { font-family: var(--serif); font-weight: 500; font-size: 19px; }
-.prayers p, .ptext { font-family: var(--serif); font-size: 19px; line-height: 1.6; color: #eee6d6; }
-.psheet h3 { font-family: var(--serif); font-weight: 500; font-variant: small-caps; letter-spacing: .04em; text-align: center; font-size: 32px; }
-.psheet .orn { margin: 4px 0 6px; }
-.guide .gnote { font-family: var(--serif); font-size: 18px; background: #1e1a22; border-color: rgba(231,194,125,.15); }
-.guide .player-nav { background: linear-gradient(rgba(21,18,26,0), #15121a 32%); }
-.guide .btn.pri { background: var(--gold); color: #1a1410; }
-.faithcard .feast { font-family: var(--serif); font-weight: 500; font-variant: small-caps; letter-spacing: .02em; }
-body.faith-mode .sheet { background: #1e1a22; border-top-color: rgba(231,194,125,.12); }
+/* reading text */
+.prayers p, .ptext { font-family: var(--serif); font-size: 20px; line-height: 1.55; color: #ece7dc; }
 .prayers summary { justify-content: flex-start; gap: 8px; align-items: baseline; }
 .prayers summary::after { margin-left: auto; }
-.guide .player-nav .btn:not(.pri) { background: #26212b; }
+.psheet h3 { margin-bottom: 4px; }
+.guide .gtitle { font-family: var(--display); font-weight: 800; font-size: 36px; letter-spacing: .01em; margin: 6px 0 14px; }
+.guide .lead { font-family: var(--serif); font-size: 22px; line-height: 1.5; color: #ece7dc; }
+.guide .fruit { margin-top: 14px; font-size: 14px; color: var(--muted); }
+.guide .fruit b { color: var(--text); font-weight: 600; }
+.guide .gints { font-size: 15px; background: var(--s1); }
+.guide .gnote { font-family: var(--serif); font-size: 18px; }
+.decbeads { display: flex; gap: 6px; margin: 0 0 8px; }
+.decbeads i { width: 8px; height: 8px; border-radius: 50%; background: var(--s3); }
+.decbeads i.on { background: color-mix(in srgb, var(--c-faith) 55%, var(--s3)); }
+.decbeads i.cur { background: var(--c-faith); }
+.faithcard .feast { font-family: var(--display); }
+/* Faith voice: the book serif, regular weight, sentence case — nothing else changes */
+body.faith-view .topbar h1, body.faith-view .h2, body.faith-view .lithero .title, body.faith-view .scard .title,
+body.faith-view .prow b, .guide .gtitle, .psheet h3, .faithcard .feast {
+  font-family: var(--serif); font-weight: 500; letter-spacing: 0; text-transform: none; font-variant: normal; }
+body.faith-view .topbar h1 { font-size: 36px; }
+body.faith-view .h2 { font-size: 26px; margin-top: 30px; }
+body.faith-view .lithero .title, body.faith-view .scard .title { font-size: 32px; line-height: 1.1; }
+body.faith-view .prow b { font-size: 19px; line-height: 1.2; }
+.guide .gtitle { font-size: 38px; line-height: 1.08; }
+.psheet h3 { font-size: 30px; }
+.faithcard .feast { font-size: 24px; }
+body.faith-view .pchk { border-color: var(--line); }
+body.faith-view .h2 .small { font-family: -apple-system, system-ui, sans-serif; font-size: 13px; }
+.prayers summary { font-family: var(--serif); font-weight: 500; font-size: 19px; }
+.prayers .times { font-family: -apple-system, system-ui, sans-serif; font-size: 13px; font-weight: 700; }

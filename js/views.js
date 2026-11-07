@@ -68,7 +68,7 @@ function route() {
   current = name;
   if (MAIN_TABS.includes(name)) lastMain = name;
   const holy = ['faith', 'faithsetup'].includes(name);
-  document.body.classList.toggle('faith-mode', holy);
+  document.body.classList.toggle('faith-view', holy);
   if (holy && typeof liturgy === 'function') document.body.style.setProperty('--lc', liturgy().hex);
   const tab = MAIN_TABS.includes(name) ? name : ['s', 'quick', 'day', 'plan'].includes(name) ? (lastMain === 'today' || lastMain === 'mobility' ? lastMain : 'workouts') : lastMain;
   document.querySelectorAll('#tabbar a').forEach(a => a.classList.toggle('on', a.dataset.tab === tab));
