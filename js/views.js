@@ -177,13 +177,13 @@ VIEWS.workouts = () => {
   if (f === 'mobility' || f === 'recovery') html += `<a class="card daycard" href="#/mobility" style="--c:var(--c-mobility);margin-top:12px"><div class="eyebrow"><span class="cdot"></span>Guided routines</div><div class="title">Mobility routines →</div><div class="muted small">Morning, desk, evening and bedtime flows.</div></a>`;
   $('#view').innerHTML = html;
 };
-VIEWS.plan = () => location.replace('#/workouts');
+VIEWS.plan = () => go('#/workouts', { replace: true });
 
 /* ---------- One-off session builder ---------- */
 VIEWS.quick = () => {
   const Q = S.ui.quick;
   if (!Q.eq) Q.eq = S.settings.eq.slice();
-  setTop(`<a class="icon-btn" href="#/${lastMain}" aria-label="Back">${ICON.back}</a><h1>New session</h1>`);
+  setTop(`<a class="icon-btn" href="#/${lastMain}" data-nav="back" aria-label="Back">${ICON.back}</a><h1>New session</h1>`);
   const seg = (k, vals, labels) => `<div class="seg">${vals.map((v, i) => `<button class="${Q[k] === v ? 'on' : ''}" data-act="qset" data-k="${k}" data-v="${v}">${labels ? labels[i] : v}</button>`).join('')}</div>`;
   $('#view').innerHTML = `
     <div class="field" style="margin-top:4px"><div class="lab">Focus</div>
@@ -201,9 +201,9 @@ let EDITING = false;
 function sessRefLabel(ref) { return ref[0] === 'p' ? 'Plan day ' + (+ref.slice(1) + 1) : ref === 'q' ? 'One-off session' : 'My workout'; }
 VIEWS.s = (ref) => {
   const sess = getSess(ref);
-  if (!sess) { location.hash = '#/' + lastMain; return; }
+  if (!sess) { go('#/' + lastMain); return; }
   const w = weekOf(ref), isPlan = ref[0] === 'p';
-  setTop(`<a class="icon-btn" href="#/${lastMain}" aria-label="Back" data-act="endEdit">${ICON.back}</a>
+  setTop(`<a class="icon-btn" href="#/${lastMain}" data-nav="back" aria-label="Back" data-act="endEdit">${ICON.back}</a>
     <div class="grow" style="min-width:0"><div class="sub" style="color:${cvar(catOf(sess))}">${CAT[catOf(sess)]} · ${sessRefLabel(ref)}${w ? ' · Week ' + w : ''} · ~${estimate(sess, w)} min</div><div style="font-weight:800;font-size:19px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sess.name)}</div></div>
     ${isPlan ? `<button class="icon-btn" data-act="shuffleDay" data-i="${ref.slice(1)}" aria-label="Shuffle exercises">${ICON.shuffle}</button>` : ''}
     ${ref === 'q' ? `<button class="icon-btn" data-act="qregen" aria-label="Regenerate">${ICON.shuffle}</button>` : ''}
@@ -246,13 +246,13 @@ function itemRow(ref, b, it, ii, w, big) {
   </div>`;
 }
 
-VIEWS.day = i => { location.replace('#/s/p' + i); };
+VIEWS.day = i => { go('#/s/p' + i, { replace: true }); };
 
 /* ---------- Setup ---------- */
 let draft = null;
 VIEWS.setup = () => {
   if (!draft) draft = JSON.parse(JSON.stringify(S.settings));
-  setTop(`${S.plan ? `<a class="icon-btn" href="#/${lastMain}" aria-label="Back" data-act="cancelSetup">${ICON.back}</a>` : ''}<h1>${S.plan ? 'Settings' : 'Build your plan'}</h1>`);
+  setTop(`${S.plan ? `<a class="icon-btn" href="#/${lastMain}" data-nav="back" aria-label="Back" data-act="cancelSetup">${ICON.back}</a>` : ''}<h1>${S.plan ? 'Settings' : 'Build your plan'}</h1>`);
   const seg = (k, vals, labels) => `<div class="seg">${vals.map((v, i) => `<button class="${draft[k] === v ? 'on' : ''}" data-act="set" data-k="${k}" data-v="${v}">${labels ? labels[i] : v}</button>`).join('')}</div>`;
   const splitDesc = { 2: 'Full Body A / B', 3: 'Squat & Push · Hinge & Pull · Athletic Single-Leg', 4: '3 strength days + Mobility & Recovery', 5: '3 strength + Mobility + Engine (conditioning)' };
   $('#view').innerHTML = `
@@ -334,7 +334,7 @@ const IV_PRESETS = [
 const SW = { start: 0, acc: 0, running: false, laps: [] };
 const swTime = () => SW.acc + (SW.running ? now() - SW.start : 0);
 VIEWS.timer = () => {
-  setTop(`<a class="icon-btn" href="#/${lastMain}" aria-label="Back">${ICON.back}</a><h1>Timer</h1>`);
+  setTop(`<a class="icon-btn" href="#/${lastMain}" data-nav="back" aria-label="Back">${ICON.back}</a><h1>Timer</h1>`);
   const t = S.ui.timerTab, iv = S.ui.iv;
   const tabs = `<div class="seg" style="margin-bottom:16px">${[['interval', 'Intervals'], ['rest', 'Rest'], ['sw', 'Stopwatch']].map(([k, l]) => `<button class="${t === k ? 'on' : ''}" data-act="ttab" data-k="${k}">${l}</button>`).join('')}</div>`;
   let body = '';
@@ -446,7 +446,7 @@ VIEWS.progress = () => {
       ${h.ex && h.ex.length && h.kind !== 'mobility' ? `<div class="small muted" style="margin-top:6px">${h.ex.filter(e => e.sets.some(s => s.done)).length} exercises · ${h.ex.reduce((a, e) => a + e.sets.filter(s => s.done).length, 0)} sets</div>` : ''}
     </button>`; }).join('') : `<div class="empty">No sessions yet. Finish a workout or a mobility flow and it'll show up here.</div>`}`;
 };
-VIEWS.log = () => location.replace('#/progress');
+VIEWS.log = () => go('#/progress', { replace: true });
 function openHist(id) {
   const h = S.history.find(x => x.id === id); if (!h) return;
   openSheet(`<div class="eyebrow">${dateTxt(h.date)}</div><h3>${esc(h.title)}</h3>

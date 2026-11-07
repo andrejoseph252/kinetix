@@ -120,9 +120,11 @@ function renderPlayer(keepScroll) {
       <div class="t"><b>${esc(d.name)}</b><span class="num" id="elapsed">${fmtLong((now() - A.start) / 1000)}</span>${w ? `<span> · Week ${w}</span>` : ''}</div>
       <button class="btn sm pri" data-act="finish">Finish</button></div>
     <div class="progress-dots">${d.blocks.map((x, i) => `<i class="${i < A.bi ? 'on' : i === A.bi ? 'cur' : ''}" style="--c:${cvar(blockCat(x))}"></i>`).join('')}</div>
+    <div class="ov-body">
     <div class="block-h" style="margin-top:4px;--c:${cvar(blockCat(b))}"><span class="hbar"></span>${b.key ? `<span class="k">${esc(b.key)}</span>` : ''}<span class="t" style="font-size:22px">${esc(b.title)}</span><span class="n">${A.bi + 1} / ${d.blocks.length}</span><button class="icon-btn sm" data-act="blk" data-r="${ref}" data-b="${b.id}" aria-label="Block options">${ICON.more}</button></div>
     <div class="muted small" style="margin:-4px 0 12px">${esc(FMT[F][0])} · ${esc(blockDesc(b, w))}</div>
     ${body}
+    </div>
     <div class="player-nav"><button class="btn" data-act="pnav" data-d="-1" ${A.bi === 0 ? 'disabled style="opacity:.4"' : ''}>Back</button>
       ${last ? `<button class="btn pri" data-act="finish">Finish workout</button>` : `<button class="btn pri" data-act="pnav" data-d="1">Next: ${esc(d.blocks[A.bi + 1].title)}</button>`}</div>
   </div>`;
@@ -152,7 +154,7 @@ function saveWorkout() {
   if (A.src === 'q' && S.quick && A.ref === 'a') { /* keep the edited version as the last generated */ S.quick = Object.assign(clone(d), { id: S.quick.id, q: S.quick.q }); }
   S.active = null; stopRest(); HOLD = null; save();
   closeSheet(); hideOverlay(); toast('Workout saved — nice work');
-  location.hash = '#/' + (lastMain === 'workouts' ? 'workouts' : 'today');
+  go('#/' + (lastMain === 'workouts' ? 'workouts' : 'today'));
 }
 
 /* hold timer inside player */

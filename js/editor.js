@@ -179,10 +179,10 @@ document.addEventListener('change', async e => {
   try {
     const data = JSON.parse(await f.text());
     if (!data.settings || !Array.isArray(data.history)) throw new Error('bad');
-    confirmSheet('Import backup?', `Replace everything on this device with the backup (${data.history.length} sessions)?`, 'Import', () => { localStorage.setItem(KEY, JSON.stringify(data)); location.hash = '#/today'; location.reload(); });
+    confirmSheet('Import backup?', `Replace everything on this device with the backup (${data.history.length} sessions)?`, 'Import', () => { localStorage.setItem(KEY, JSON.stringify(data)); go('#/today'); location.reload(); });
   } catch (err) { toast('That file isn\'t a Kinetix backup'); }
 });
-window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#/setup')) draft = null; closeSheet(); route(); });
+// navigation lives in nav.js
 
 // iOS: keep set inputs visible above the keyboard
 document.addEventListener('focusin', e => { if (e.target.matches('.set input')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 250); });

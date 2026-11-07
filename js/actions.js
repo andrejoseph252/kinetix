@@ -4,7 +4,7 @@
    Actions
    ========================================================= */
 const ACT = {
-  closeSheet: () => closeSheet(),
+  closeSheet: () => dismissSheet(),
   confirmOk: () => { const f = confirmFn; confirmFn = null; closeSheet(); f && f(); },
   ex: el => openEx(el.dataset.id),
   flip: el => el.classList.toggle('show2'),
@@ -26,29 +26,29 @@ const ACT = {
 
   // navigation & quick picks
   wf: el => { S.ui.wf = el.dataset.k; save(); rerender(); },
-  goQuick: () => { location.hash = '#/quick'; },
+  goQuick: () => { go('#/quick'); },
   qpick: el => {
     const k = el.dataset.k, q = S.ui.quick, eq = (q.eq || S.settings.eq).slice();
     if (RECIPES[k].needs && !eq.includes(RECIPES[k].needs)) { toast(`Needs a ${EQ_LABEL[RECIPES[k].needs].toLowerCase()}`); return; }
     S.quick = generateQuick({ focus: k, mins: +el.dataset.m, energy: q.energy, eq });
-    EDITING = false; save(); location.hash = '#/s/q';
+    EDITING = false; save(); go('#/s/q');
   },
   routineGo: el => { const r = ROUTINES.find(x => x.id === el.dataset.id); openFlow(r.name, idEntries(routineIds(r))); },
   flowCustom: () => {
     const p = pendingFlow;
     const t = normSess({ id: uid(), cat: 'mobility', name: p.title, focus: 'Mobility routine', blocks: [{ title: 'Flow', kind: 'flow', fmt: 'flow', rounds: 1, items: p.ids.map(id => Object.assign({ id: uid(), ex: id }, baseRx(id))) }] });
-    S.saved.unshift(t); save(); EDITING = true; onSheetClose = null; closeSheet(); location.hash = '#/s/t' + t.id; toast('Saved to My workouts — edit away');
+    S.saved.unshift(t); save(); EDITING = true; onSheetClose = null; closeSheet(); go('#/s/t' + t.id); toast('Saved to My workouts — edit away');
   },
 
   // one-off sessions
-  qfocus: el => { S.ui.quick.focus = el.dataset.k; save(); location.hash = '#/quick'; },
+  qfocus: el => { S.ui.quick.focus = el.dataset.k; save(); go('#/quick'); },
   qset: el => { const k = el.dataset.k; S.ui.quick[k] = k === 'mins' ? +el.dataset.v : el.dataset.v; save(); rerender(); },
   qeq: el => { const q = S.ui.quick, k = el.dataset.k; q.eq = q.eq.includes(k) ? q.eq.filter(x => x !== k) : [...q.eq, k]; save(); rerender(); },
   qgen: () => {
     const q = S.ui.quick, R = RECIPES[q.focus];
     if (R.needs && !q.eq.includes(R.needs)) { toast(`Add ${EQ_LABEL[R.needs]} to today's equipment`); return; }
     S.quick = generateQuick({ focus: q.focus, mins: q.mins, energy: q.energy, eq: q.eq.slice() });
-    EDITING = false; save(); location.hash = '#/s/q';
+    EDITING = false; save(); go('#/s/q');
   },
   qregen: () => confirmSheet('Regenerate?', 'Build a fresh session with the same focus, time and equipment. Your edits are replaced.', 'Regenerate', () => { S.quick = generateQuick(S.quick.q); save(); rerender(); }),
   reroll: el => { const { sess, b } = locate(el); rerollBlock(sess, b); save(); rerender(); },
@@ -56,11 +56,11 @@ const ACT = {
   endEdit: () => { EDITING = false; },
   newTpl: () => {
     const t = normSess({ id: uid(), name: 'New workout', focus: '', blocks: [{ title: 'Warm-up', fmt: 'flow', rounds: 1, items: [] }, { title: 'Main', key: 'A', fmt: 'sets', rest: 90, restItem: 30, items: [] }] });
-    S.saved.unshift(t); save(); EDITING = true; location.hash = '#/s/t' + t.id;
+    S.saved.unshift(t); save(); EDITING = true; go('#/s/t' + t.id);
   },
-  saveTpl: el => { const c = saveAsTemplate(el.dataset.r); toast('Saved to My workouts'); location.hash = '#/s/t' + c.id; },
-  dupTpl: el => { const c = clone(getSess(el.dataset.r)); c.id = uid(); c.name += ' (copy)'; S.saved.unshift(c); save(); location.hash = '#/s/t' + c.id; },
-  delTpl: el => confirmSheet('Delete this workout?', 'It will be removed from My workouts. Your history is kept.', 'Delete', () => { const id = el.dataset.r.slice(1); S.saved = S.saved.filter(t => t.id !== id); save(); location.hash = '#/workouts'; }, true),
+  saveTpl: el => { const c = saveAsTemplate(el.dataset.r); toast('Saved to My workouts'); go('#/s/t' + c.id); },
+  dupTpl: el => { const c = clone(getSess(el.dataset.r)); c.id = uid(); c.name += ' (copy)'; S.saved.unshift(c); save(); go('#/s/t' + c.id); },
+  delTpl: el => confirmSheet('Delete this workout?', 'It will be removed from My workouts. Your history is kept.', 'Delete', () => { const id = el.dataset.r.slice(1); S.saved = S.saved.filter(t => t.id !== id); save(); go('#/workouts'); }, true),
   startSess: el => startSess(el.dataset.r),
   addBlock: el => {
     const ref = el.dataset.r;
@@ -127,16 +127,16 @@ const ACT = {
   tog: el => { const k = el.dataset.k; draft[k] = !draft[k]; VIEWS.setup(); },
   cancelSetup: () => { draft = null; },
   genPlan: () => {
-    const go = () => { S.settings = draft; draft = null; S.plan = generatePlan(S.settings); S.active = null; save(); location.hash = '#/today'; toast('Plan ready — week 1'); };
+    const go = () => { S.settings = draft; draft = null; S.plan = generatePlan(S.settings); S.active = null; save(); go('#/today'); toast('Plan ready — week 1'); };
     if (S.plan) confirmSheet('Generate a new plan?', 'This replaces your current plan and starts again at week 1. Your history is kept.', 'Generate', go); else go();
   },
-  saveSettings: () => { S.settings = draft; draft = null; save(); location.hash = '#/' + lastMain; toast('Settings saved'); },
+  saveSettings: () => { S.settings = draft; draft = null; save(); go('#/' + lastMain); toast('Settings saved'); },
   export: () => {
     const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'kinetix-backup-' + new Date().toISOString().slice(0, 10) + '.json';
     document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   },
-  reset: () => confirmSheet('Reset everything?', 'Deletes your plan, settings and all history from this device.', 'Delete all', () => { localStorage.removeItem(KEY); location.hash = '#/today'; location.reload(); }, true),
+  reset: () => confirmSheet('Reset everything?', 'Deletes your plan, settings and all history from this device.', 'Delete all', () => { localStorage.removeItem(KEY); go('#/today'); location.reload(); }, true),
   cacheImgs: async el => {
     if (!('caches' in window)) { toast('Offline storage not supported here'); return; }
     el.disabled = true; el.textContent = 'Saving photos…';
@@ -184,7 +184,7 @@ const ACT = {
     if (k === 'reset') { SW.acc = 0; SW.running = false; SW.laps = []; }
     rerender();
   },
-  openTimerTab: () => { S.ui.timerTab = 'sw'; save(); ACT.minimize(); location.hash = '#/timer'; },
+  openTimerTab: () => { S.ui.timerTab = 'sw'; save(); ACT.minimize(); go('#/timer'); },
 
   // library
   lib: el => { S.ui.lib = el.dataset.k; save(); document.querySelectorAll('[data-act=lib]').forEach(c => c.classList.toggle('on', c === el)); renderLibGrid(); },

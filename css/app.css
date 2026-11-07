@@ -439,3 +439,23 @@ body:not(.ovl).resting .restbar { bottom: calc(var(--tab-h) + var(--safe-b) + 10
 .tabbar a[data-tab=library].on { color: var(--c-kb); }
 .tabbar a[data-tab=progress].on { color: var(--c-recovery); }
 .topbar .sub { display: block; }
+
+/* ---------- v4: gestures ---------- */
+html, body { overscroll-behavior: none; }
+body { touch-action: manipulation; }
+.sheet .grab { position: relative; touch-action: none; cursor: grab; }
+.sheet .grab::before { content: ""; position: absolute; left: -60px; right: -60px; top: -14px; bottom: -12px; } /* bigger drag target */
+.sheet.dragging { animation: none; transition: none; }
+.sheet.settle { animation: none; transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+.sheet.closing { animation: sheetDown .24s cubic-bezier(.4,0,1,1) forwards; }
+.sheet-bg.closing { animation: fadeOut .24s ease forwards; }
+@keyframes sheetDown { from { transform: translateY(var(--dy, 0)) } to { transform: translateY(105%) } }
+@keyframes fadeOut { to { opacity: 0 } }
+.edge-drag { transition: none !important; will-change: transform; }
+.edge-settle { transition: transform .17s ease-out, opacity .17s ease-out; }
+#view, #topbar { box-shadow: none; }
+.ov-body { will-change: auto; }
+.slide-in-r { animation: slideInR .22s cubic-bezier(.2,.8,.2,1); }
+.slide-in-l { animation: slideInL .22s cubic-bezier(.2,.8,.2,1); }
+@keyframes slideInR { from { transform: translateX(40px); opacity: 0 } }
+@keyframes slideInL { from { transform: translateX(-40px); opacity: 0 } }

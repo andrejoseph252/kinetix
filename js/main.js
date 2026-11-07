@@ -2,7 +2,7 @@
 'use strict';
 /* ---------- boot ---------- */
 if (S.plan) S.plan.days.forEach(d => normSess(d));
-if (!location.hash || location.hash === '#/plan') location.replace('#/today');
+if (!location.hash || location.hash === '#/plan') go('#/today', { replace: true });
 route();
 if (S.active && S.plan) { /* show resume banner on plan; don't force the overlay open */ }
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
