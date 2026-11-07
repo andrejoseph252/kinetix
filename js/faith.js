@@ -161,6 +161,49 @@ function liturgy(date = new Date()) {
   return { season, color, hex: LIT_COLOR[color], week, feast, note, easterSeason: season === 'Easter' };
 }
 
+/* ---------- light & colour ---------- */
+// Three colours of light per season / mystery — painted as soft, slowly drifting glows
+function seasonPalette(L) {
+  if (L.color === 'rose') return ['#f29bbf', '#f2c46d', '#8b6fd6'];
+  if (L.color === 'red') return ['#ff5a4a', '#ffb347', '#c2185b'];
+  if (L.season === 'Advent') return ['#6b4bd6', '#f0a64e', '#2b3fa8'];
+  if (L.season === 'Lent') return ['#7a4fb8', '#3b2f7a', '#c79be0'];
+  if (L.season === 'Easter Triduum') return ['#b4373f', '#5a2a6a', '#e7c27d'];
+  if (L.color === 'white') return ['#f6ecd2', '#f2c46d', '#8fb7ff'];
+  return ['#2fae7a', '#e7c27d', '#2a6fdb']; // Ordinary Time: green, gold, sky
+}
+const MYSTERY_PAL = {
+  joyful: ['#ffb0a0', '#f6d27a', '#8fc7ff'],
+  luminous: ['#ffe08a', '#4fb8f0', '#fff1c1'],
+  sorrowful: ['#a02c40', '#5b2a7a', '#c0563f'],
+  glorious: ['#f6d27a', '#fff6e0', '#6f8cff'],
+};
+const EXAMEN_PAL = ['#2b3f9f', '#e99b52', '#6a4bb3'];
+const glowStyle = pal => `--g1:${pal[0]};--g2:${pal[1]};--g3:${pal[2]}`;
+const glow = (pal, cls = '') => `<div class="glow ${cls}" style="${glowStyle(pal)}" aria-hidden="true"><i></i><b></b></div>`;
+// A line to lift the heart, one per day
+const SAYINGS = [
+  ['You have made us for yourself, O Lord, and our heart is restless until it rests in you.', 'St Augustine'],
+  ['The glory of God is man fully alive.', 'St Irenaeus'],
+  ['Be who God meant you to be and you will set the world on fire.', 'St Catherine of Siena'],
+  ['Let nothing disturb you, let nothing frighten you. All things pass; God never changes.', 'St Teresa of Ávila'],
+  ['Late have I loved you, beauty so ancient and so new.', 'St Augustine'],
+  ['Prayer is a surge of the heart, a simple look turned toward heaven.', 'St Thérèse of Lisieux'],
+  ['Have patience with all things, but chiefly have patience with yourself.', 'St Francis de Sales'],
+  ['Nothing is so strong as gentleness, nothing so gentle as real strength.', 'St Francis de Sales'],
+  ['In all things, to love and to serve.', 'St Ignatius of Loyola'],
+  ['To give, and not to count the cost.', 'St Ignatius of Loyola'],
+  ['Pray, hope, and don’t worry.', 'St Pio of Pietrelcina'],
+  ['Love God, serve God; everything is in that.', 'St Clare of Assisi'],
+  ['Holiness consists simply in doing God’s will, and being just what God wants us to be.', 'St Thérèse of Lisieux'],
+  ['All shall be well, and all shall be well, and all manner of thing shall be well.', 'Julian of Norwich'],
+  ['Take courage; it is I. Do not be afraid.', 'Matthew 14:27'],
+  ['The Rosary is the most beautiful and the most rich in graces of all prayers.', 'Pope St Pius X'],
+  ['Trust the past to God’s mercy, the present to his love, and the future to his providence.', 'St Augustine'],
+  ['Where there is no love, put love, and you will draw out love.', 'St John of the Cross'],
+];
+const saying = (d = new Date()) => SAYINGS[Math.floor((new Date(d) - new Date(new Date(d).getFullYear(), 0, 0)) / 864e5) % SAYINGS.length];
+
 /* ---------- state ---------- */
 const FAITH_DEFAULT_PRACTICES = [
   { id: 'offering', kind: 'prayer', prayer: 'offering', name: 'Morning Offering', when: 'morning', days: ALL_DAYS, on: true },
@@ -241,7 +284,7 @@ function faithTodayCard() {
   if (!F().practices.some(p => p.on)) return '';
   const L = liturgy(), ps = todaysPractices(), done = ps.filter(p => isDone(p.id)).length, nx = nextPractice();
   const y = F().journal[dk(addDays(new Date(), -1))];
-  return `<a class="card faithcard" href="#/faith" style="--lc:${L.hex}">
+  return `<a class="card faithcard" href="#/faith" style="--lc:${L.hex}">${glow(seasonPalette(L), 'soft')}
     <div class="row"><div class="grow">${litPill(L)}${L.feast ? `<div class="feast">${esc(L.feast)}</div>` : ''}</div><div class="fcount"><b>${done}</b>/${ps.length}</div></div>
     ${L.note ? `<div class="muted small" style="margin-top:6px">${esc(L.note)}</div>` : ''}
     ${y && y.resolution ? `<div class="resol">Yesterday you resolved: <b>${esc(y.resolution)}</b></div>` : ''}
@@ -257,12 +300,16 @@ VIEWS.faith = () => {
   const week = Array.from({ length: 7 }, (_, i) => { const d = addDays(mon, i); return `<div class="${dk(d) === dk() ? 'today' : ''} ${d > new Date() && dk(d) !== dk() ? 'future' : ''}"><span>${'MTWTFSS'[i]}</span><b>${d.getDate()}</b><i>${faithDayCount(d) ? `<em style="background:var(--c-faith)"></em>` : ''}${(f.log[dk(d)] || {}).rosary ? `<em style="background:var(--lc)"></em>` : ''}</i></div>`; }).join('');
   const openInt = f.intentions.filter(x => !x.answered), answered = f.intentions.filter(x => x.answered);
   $('#view').innerHTML = `
-    <div class="card lithero" style="--lc:${L.hex}">
+    <div class="lithero" style="--lc:${L.hex}">
+      ${glow(seasonPalette(L))}
+      <div class="lit-in">
       ${litPill(L)}
       <div class="title" style="margin-top:10px">${esc(L.feast || new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }))}</div>
       ${L.feast ? `<div class="muted small" style="margin-top:2px">${new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</div>` : ''}
       ${L.note ? `<div class="muted small" style="margin-top:4px">${esc(L.note)}</div>` : ''}
-      <a class="btn sm ghost" style="margin-top:14px" href="${massReadingsUrl()}" target="_blank" rel="noopener">Today’s Mass readings</a>
+      <blockquote class="saying">“${esc(saying()[0])}”<cite>${esc(saying()[1])}</cite></blockquote>
+      <a class="btn sm glass" href="${massReadingsUrl()}" target="_blank" rel="noopener">Today’s Mass readings</a>
+      </div>
     </div>
     <div class="h2 row"><span class="grow">Today</span><span class="small muted">${ps.filter(p => isDone(p.id)).length} of ${ps.length}</span></div>
     ${ps.length ? Object.keys(WHEN_LABEL).filter(w => groups[w]).map(w => `<div class="pgroup"><div class="eyebrow">${WHEN_LABEL[w]}</div><div class="plist">${groups[w].map(practiceRow).join('')}</div></div>`).join('') : `<div class="card muted small">Nothing scheduled today. <a href="#/faithsetup" style="text-decoration:underline">Choose your practices</a>.</div>`}
@@ -376,7 +423,7 @@ function openGuide(kind, opts = {}) {
 function renderGuide() {
   const o = $('#overlay'), s = GD.steps[GD.i], last = GD.i === GD.steps.length - 1, L = liturgy();
   const title = GD.kind === 'rosary' ? 'The Rosary' : 'The Examen';
-  o.innerHTML = `<div class="ov-in guide" style="--lc:${L.hex}">
+  o.innerHTML = `${glow(GD.kind === 'rosary' ? MYSTERY_PAL[GD.set] : EXAMEN_PAL, 'fixed')}<div class="ov-in guide" style="--lc:${L.hex}">
     <div class="ov-top"><button class="icon-btn" data-act="gClose" aria-label="Close">${ICON.close}</button><div class="t"><b>${title}</b><span>${esc(s.k)}${GD.kind === 'rosary' ? ' · ' + esc(MYSTERIES[GD.set].name) : ''}</span></div></div>
     <div class="progress-dots">${GD.steps.map((_, i) => `<i class="${i < GD.i ? 'on' : i === GD.i ? 'cur' : ''}" style="--c:var(--c-faith)"></i>`).join('')}</div>
     <div class="ov-body">
@@ -397,7 +444,7 @@ function finishGuide() {
 }
 function prayerSheet(key, pid) {
   const P = PRAYERS[key];
-  openSheet(`<div class="psheet"><h3>${esc(P[0])}</h3><p class="ptext">${prayerHTML(P[1])}</p></div>
+  openSheet(`<div class="psheet">${glow(seasonPalette(liturgy()), 'band')}<h3>${esc(P[0])}</h3><p class="ptext">${prayerHTML(P[1])}</p></div>
     ${pid ? `<button class="btn pri block" style="margin-top:16px" data-act="fMark" data-p="${pid}">${ICON.check} Prayed</button>` : ''}`);
 }
 function planPicker() {

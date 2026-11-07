@@ -1,12 +1,12 @@
 // Kinetix service worker — offline support.
 // Shell: network-first (so GitHub Pages updates show up), falling back to cache.
 // Exercise images: cache-first (they never change).
-const VERSION = 'v15';
+const VERSION = 'v16';
 const SHELL = 'kx-shell-' + VERSION;
 const IMG = 'kx-img-v1';
 const SHELL_FILES = [
   './', 'index.html', 'css/app.css', 'js/core.js', 'js/engine.js', 'js/views.js', 'js/player.js', 'js/editor.js', 'js/actions.js', 'js/faith.js', 'js/nav.js', 'js/main.js', 'js/data.js',
-  'manifest.webmanifest', 'fonts/big-shoulders-display.woff2', 'fonts/eb-garamond.woff2', 'fonts/eb-garamond-italic.woff2', 'icons/icon.svg', 'icons/icon-192.png', 'icons/apple-touch-icon.png'
+  'manifest.webmanifest', 'fonts/big-shoulders-display.woff2', 'icons/icon.svg', 'icons/icon-192.png', 'icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', e => {
