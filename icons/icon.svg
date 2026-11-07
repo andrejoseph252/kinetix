@@ -1,13 +1,2 @@
-<!-- Kinetix mark: a forward-leaning K; the arms push through the stem like a forward arrow. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-<defs>
-<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e2844"/><stop offset="1" stop-color="#0d121f"/></linearGradient>
-<linearGradient id="flow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f9d67e"/><stop offset=".5" stop-color="#f28c4c"/><stop offset="1" stop-color="#e2506c"/></linearGradient>
-<clipPath id="cap"><rect x="0" y="252" width="1024" height="520"/></clipPath>
-<mask id="slit"><rect x="-200" y="0" width="1400" height="1024" fill="#fff"/><path d="M1050 -40 L494 512 L1050 1064" fill="none" stroke="#000" stroke-width="200" stroke-linejoin="miter" stroke-miterlimit="10"/></mask>
-</defs>
-<rect width="1024" height="1024" fill="url(#bg)"/>
-<g transform="translate(512 512) scale(.9) translate(-512 -512)"><g transform="translate(64 0) skewX(-11)" clip-path="url(#cap)">
-<rect x="292" y="252" width="122" height="520" fill="#f1eee6" mask="url(#slit)"/>
-<path d="M1050 -40 L494 512 L1050 1064" fill="none" stroke="url(#flow)" stroke-width="124" stroke-linejoin="miter" stroke-miterlimit="10"/>
-</g></g></svg>
+<!-- Kinetix mark: a forward-leaning navy K on a sunrise field; the arms push through the stem like a forward arrow. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs><linearGradient id="field" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset=".45" stop-color="#f6874a"/><stop offset="1" stop-color="#c8365f"/></linearGradient><clipPath id="cap"><rect x="0" y="252" width="1024" height="520"/></clipPath><mask id="slit"><rect x="-200" y="0" width="1400" height="1024" fill="#fff"/><path d="M1050 -40 L494 512 L1050 1064" fill="none" stroke="#000" stroke-width="200" stroke-linejoin="miter" stroke-miterlimit="10"/></mask></defs><rect width="1024" height="1024" fill="url(#field)"/><g transform="translate(512 512) scale(0.9) translate(-512 -512)"><g transform="translate(64 0) skewX(-11)" clip-path="url(#cap)"><rect x="292" y="252" width="122" height="520" fill="#141a2c" mask='url(#slit)'/><path d="M1050 -40 L494 512 L1050 1064" fill="none" stroke="#141a2c" stroke-width="124" stroke-linejoin="miter" stroke-miterlimit="10"/></g></g></svg>
