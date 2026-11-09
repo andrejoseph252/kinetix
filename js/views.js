@@ -554,36 +554,87 @@ function openEx(id) {
   `);
 }
 
-/* ---------- Log ---------- */
+/* ---------- Progress ---------- */
+// Two tracks: training (workouts) and routines (the short daily flows). A day can have both —
+// a morning wake-up, a workout and a wind-down all count, each in its own lane.
+const RSLOT = {
+  morning: { name: 'Morning', c: 'athletic', ids: ['wake', 'quick5'] },
+  evening: { name: 'Evening', c: 'recovery', ids: ['evening', 'bed'] },
+  mobility: { name: 'Mobility', c: 'mobility', ids: [] },
+  prep: { name: 'Pre & post', c: 'engine', ids: ['pre', 'post'] },
+};
+const isRoutine = h => h.kind === 'mobility';
+function routineSlot(h) {
+  const rid = h.rid || (ROUTINES.find(x => x.name === h.title) || {}).id;
+  for (const k in RSLOT) if (RSLOT[k].ids.includes(rid)) return k;
+  return 'mobility';
+}
+// The day an entry counts for: a wind-down after midnight still belongs to the night before
+function hDay(h) {
+  const d = new Date(h.date), cut = (S.faith && S.faith.opts && S.faith.opts.dayStart) ?? 3;
+  if (isRoutine(h) && routineSlot(h) === 'evening' && d.getHours() < cut) d.setDate(d.getDate() - 1);
+  return d.toDateString();
+}
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const timeTxt = iso => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function mbars(rows, max) { return rows.map(([name, c, m]) => `<div class="mbar" style="--c:${cvar(c)}"><span>${esc(name)}</span><div><i style="width:${m / max * 100}%"></i></div><b class="num">${m}</b></div>`).join(''); }
 VIEWS.progress = () => {
   setTop(`<h1>Progress</h1>${topIcons()}`);
-  const H = S.history, mon = mondayOf(new Date());
-  const wk = H.filter(h => new Date(h.date) >= mon);
-  const mobDays = new Set(wk.filter(h => isMob(histCat(h))).map(h => new Date(h.date).toDateString())).size;
-  let streak = 0; const wks = new Set(H.map(h => mondayOf(h.date).getTime()));
+  const H = S.history, mon = mondayOf(new Date()), todayK = new Date().toDateString(), nowT = new Date();
+  const wk = H.filter(h => new Date(hDay(h)) >= mon);
+  const W = wk.filter(h => !isRoutine(h)), R = wk.filter(isRoutine);
+  const rDays = new Set(R.map(hDay)).size;
+  let streak = 0; const wks = new Set(H.map(h => mondayOf(hDay(h)).getTime()));
   for (let d = new Date(mon); ; d.setDate(d.getDate() - 7)) { if (wks.has(d.getTime())) streak++; else if (d.getTime() !== mon.getTime()) break; if (streak > 200) break; }
-  // 4-week grid, coloured by what you did
-  const start = new Date(mon); start.setDate(start.getDate() - 21);
-  const byDay = {}; H.forEach(h => { const k = new Date(h.date).toDateString(), c = histCat(h); if (!byDay[k] || isMob(byDay[k])) byDay[k] = c; });
-  const cells = Array.from({ length: 28 }, (_, i) => { const d = new Date(start); d.setDate(d.getDate() + i); const c = byDay[d.toDateString()]; return `<i class="${d.toDateString() === new Date().toDateString() ? 'today' : ''}" ${c ? `style="background:${cvar(c)}"` : ''}></i>`; }).join('');
-  // minutes by category, this week
-  const mins = {}; wk.forEach(h => { const c = histCat(h); mins[c] = (mins[c] || 0) + Math.round((h.dur || 0) / 60); });
-  const maxM = Math.max(1, ...Object.values(mins));
+  // routines: one lane per kind, a dot per day this week
+  const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
+  const ever = new Set(H.filter(isRoutine).map(routineSlot));
+  const lanes = Object.entries(RSLOT).filter(([k]) => k !== 'prep' || ever.has('prep')).map(([k, s]) => {
+    const on = days.map(d => R.some(h => routineSlot(h) === k && hDay(h) === d.toDateString()));
+    return `<div class="rlane" style="--c:${cvar(s.c)}"><span>${s.name}</span><div class="rdots">${on.map((x, i) => `<i class="${x ? 'on' : ''} ${days[i].toDateString() === todayK ? 'today' : days[i] > nowT ? 'future' : ''}"></i>`).join('')}</div><b class="num">${on.filter(Boolean).length}</b></div>`;
+  }).join('');
+  // minutes, split by track
+  const tm = {}, rm = {};
+  W.forEach(h => { const c = histCat(h); tm[c] = (tm[c] || 0) + Math.round((h.dur || 0) / 60); });
+  R.forEach(h => { const k = routineSlot(h); rm[k] = (rm[k] || 0) + Math.round((h.dur || 0) / 60); });
+  const maxM = Math.max(1, ...Object.values(tm), ...Object.values(rm)), sum = o => Object.values(o).reduce((a, b) => a + b, 0);
+  const tRows = Object.entries(tm).sort((a, b) => b[1] - a[1]).map(([c, m]) => [CAT[c] || c, c, m]);
+  const rRows = Object.keys(RSLOT).filter(k => rm[k]).map(k => [RSLOT[k].name, RSLOT[k].c, rm[k]]);
+  // last 4 weeks: the square is the workout, the dots underneath are routines
+  const start = addDays(mon, -21), byDay = {};
+  H.forEach(h => { const k = hDay(h), o = byDay[k] = byDay[k] || { c: null, r: new Set() }; if (isRoutine(h)) o.r.add(routineSlot(h)); else if (!o.c || isMob(o.c)) o.c = histCat(h); });
+  const cells = Array.from({ length: 28 }, (_, i) => { const d = addDays(start, i), o = byDay[d.toDateString()];
+    return `<i class="${d.toDateString() === todayK ? 'today' : ''} ${o && o.c ? 'fill' : ''}" ${o && o.c ? `style="background:${cvar(o.c)}"` : ''}>${o ? Object.keys(RSLOT).filter(k => o.r.has(k)).map(k => `<em style="background:${cvar(RSLOT[k].c)}"></em>`).join('') : ''}</i>`; }).join('');
+  // history, one group per day, in the order you did things
+  const groups = [];
+  H.slice().reverse().forEach(h => { const k = hDay(h); let g = groups[groups.length - 1]; if (!g || g.k !== k) groups.push(g = { k, list: [] }); g.list.unshift(h); });
+  const shown = S.ui.histAll ? groups : groups.slice(0, 14);
+  const row = h => {
+    if (isRoutine(h)) { const s = RSLOT[routineSlot(h)]; return `<button class="hmini" style="--c:${cvar(s.c)}" data-act="hist" data-id="${h.id}"><span class="cdot"></span><span class="grow"><b>${esc(h.title)}</b> <span class="muted">· ${s.name}</span></span><span class="muted small num">${timeTxt(h.date)} · ${Math.max(1, Math.round((h.dur || 0) / 60))}m</span></button>`; }
+    const c = histCat(h);
+    return `<button class="card hrow" style="--c:${cvar(c)}" data-act="hist" data-id="${h.id}">
+      <div class="row"><div class="grow"><div class="eyebrow"><span class="cdot"></span>${CAT[c] || ''}${h.week ? ' · Week ' + h.week : ''} · ${timeTxt(h.date)}</div><b>${esc(h.title)}</b></div><div style="text-align:right" class="small muted">${fmtLong(h.dur || 0)}${h.rpe ? '<br>RPE ' + h.rpe : ''}</div></div>
+      ${h.ex && h.ex.length ? `<div class="small muted" style="margin-top:6px">${plural(h.ex.filter(e => e.sets.some(s => s.done)).length, 'exercise')} · ${plural(h.ex.reduce((a, e) => a + e.sets.filter(s => s.done).length, 0), 'set')}</div>` : ''}
+    </button>`;
+  };
   $('#view').innerHTML = `
-    <div class="stats"><div class="stat" style="--c:var(--c-strength)"><b>${wk.filter(h => !isMob(histCat(h))).length}</b><span>workouts this week</span></div><div class="stat" style="--c:var(--c-mobility)"><b>${mobDays}</b><span>mobility days</span></div><div class="stat" style="--c:var(--c-athletic)"><b>${streak}</b><span>week streak</span></div></div>
+    <div class="stats"><div class="stat" style="--c:var(--c-strength)"><b>${W.length}</b><span>workout${W.length === 1 ? '' : 's'} this week</span></div><div class="stat" style="--c:var(--c-mobility)"><b>${rDays}</b><span>routine day${rDays === 1 ? '' : 's'}</span></div><div class="stat" style="--c:var(--c-athletic)"><b>${streak}</b><span>week streak</span></div></div>
+    <div class="card" style="margin-top:10px"><div class="row"><div class="eyebrow grow">Routines this week</div><span class="small muted">${R.length} done</span></div>
+      <div class="rlane rhead"><span></span><div class="rdots">${'MTWTFSS'.split('').map(x => `<span>${x}</span>`).join('')}</div><b></b></div>
+      ${lanes}</div>
     <div class="card" style="margin-top:10px"><div class="eyebrow">Minutes this week</div>
-      ${Object.keys(mins).length ? Object.entries(mins).sort((a, b) => b[1] - a[1]).map(([c, m]) => `<div class="mbar" style="--c:${cvar(c)}"><span>${CAT[c] || c}</span><div><i style="width:${m / maxM * 100}%"></i></div><b class="num">${m}</b></div>`).join('') : '<div class="muted small" style="margin-top:8px">Nothing logged yet this week.</div>'}
+      ${tRows.length || rRows.length ? `${tRows.length ? `<div class="msub"><span>Training</span><b class="num">${sum(tm)}</b></div>${mbars(tRows, maxM)}` : ''}${rRows.length ? `<div class="msub"><span>Routines</span><b class="num">${sum(rm)}</b></div>${mbars(rRows, maxM)}` : ''}` : '<div class="muted small" style="margin-top:8px">Nothing logged yet this week.</div>'}
     </div>
     ${faithProgress()}
     <div class="card" style="margin-top:10px"><div class="eyebrow">Last 4 weeks</div>
       <div class="weekgrid" style="margin-top:8px">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(x => `<span class="muted" style="font-size:10px;text-align:center;font-weight:700">${x}</span>`).join('')}</div>
-      <div class="weekgrid" style="margin-top:4px">${cells}</div>
-      <div class="legend">${Object.keys(CAT).filter(c => c !== 'custom').map(c => `<span><em style="background:${cvar(c)}"></em>${CAT[c]}</span>`).join('')}</div></div>
+      <div class="weekgrid wg4" style="margin-top:4px">${cells}</div>
+      <div class="legend">${['strength', 'athletic', 'kb', 'engine', 'mobility', 'recovery'].map(c => `<span><em style="background:${cvar(c)}"></em>${CAT[c]}</span>`).join('')}</div>
+      <div class="legend" style="margin-top:6px"><span class="muted">Dots = routines:</span>${Object.keys(RSLOT).map(k => `<span><em class="dot" style="background:${cvar(RSLOT[k].c)}"></em>${RSLOT[k].name}</span>`).join('')}</div></div>
     <div class="h2">History</div>
-    ${H.length ? H.slice().reverse().map(h => { const c = histCat(h); return `<button class="card hrow" style="--c:${cvar(c)}" data-act="hist" data-id="${h.id}">
-      <div class="row"><div class="grow"><div class="eyebrow"><span class="cdot"></span>${dateTxt(h.date)} · ${CAT[c] || ''}${h.week ? ' · Week ' + h.week : ''}</div><b>${esc(h.title)}</b></div><div style="text-align:right" class="small muted">${fmtLong(h.dur || 0)}${h.rpe ? '<br>RPE ' + h.rpe : ''}</div></div>
-      ${h.ex && h.ex.length && h.kind !== 'mobility' ? `<div class="small muted" style="margin-top:6px">${h.ex.filter(e => e.sets.some(s => s.done)).length} exercises · ${h.ex.reduce((a, e) => a + e.sets.filter(s => s.done).length, 0)} sets</div>` : ''}
-    </button>`; }).join('') : `<div class="empty">No sessions yet. Finish a workout or a mobility flow and it'll show up here.</div>`}`;
+    ${groups.length ? shown.map(g => { const t = g.list.reduce((a, h) => a + (h.dur || 0), 0); return `<div class="hday"><div class="hday-h"><b>${dateTxt(g.k)}</b><span class="muted small">${Math.round(t / 60)} min</span></div>${g.list.map(row).join('')}</div>`; }).join('')
+      + (groups.length > shown.length ? `<button class="btn ghost block" data-act="histAll">Show all ${groups.length} days</button>` : '')
+      : `<div class="empty">Nothing yet. Finish a workout or a routine and it'll show up here.</div>`}`;
 };
 function faithProgress() {
   if (!S.faith || !S.faith.practices.some(p => p.on)) return '';
@@ -597,7 +648,7 @@ function faithProgress() {
 VIEWS.log = () => go('#/progress', { replace: true });
 function openHist(id) {
   const h = S.history.find(x => x.id === id); if (!h) return;
-  openSheet(`<div class="eyebrow">${dateTxt(h.date)}</div><h3>${esc(h.title)}</h3>
+  openSheet(`<div class="eyebrow">${dateTxt(h.date)} · ${timeTxt(h.date)}${isRoutine(h) ? ' · ' + RSLOT[routineSlot(h)].name + ' routine' : ''}</div><h3>${esc(h.title)}</h3>
     <div class="kv"><span class="muted">Duration</span><b>${fmtLong(h.dur || 0)}</b></div>
     ${h.rpe ? `<div class="kv"><span class="muted">Session RPE</span><b>${h.rpe}</b></div>` : ''}
     ${h.notes ? `<div class="note" style="margin:10px 0">${esc(h.notes)}</div>` : ''}

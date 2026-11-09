@@ -234,6 +234,7 @@ const ACT = {
 
   // log
   hist: el => openHist(el.dataset.id),
+  histAll: () => { S.ui.histAll = true; rerender(); },
   delHist: el => confirmSheet('Delete this entry?', 'This can\'t be undone.', 'Delete', () => {
     const id = el.dataset.id; S.history = S.history.filter(h => h.id !== id);
     if (S.plan) for (const k in S.plan.done) if (S.plan.done[k] === id) delete S.plan.done[k];

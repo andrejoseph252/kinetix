@@ -599,6 +599,28 @@ input:focus, textarea:focus { border-color: var(--text); }
 .picks .pick span:not(.cdot) { font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--c); margin-top: 6px; }
 .hrow { border-left: 0; }
 .legend { gap: 12px; }
+.legend em.dot { border-radius: 50%; }
+/* progress: routine lanes, 4-week grid with routine dots, day-grouped history */
+.rlane { display: grid; grid-template-columns: 92px 1fr 22px; gap: 10px; align-items: center; margin-top: 9px; font-size: 13px; }
+.rlane > b { text-align: right; color: var(--c); }
+.rlane.rhead { margin-top: 10px; }
+.rdots { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.rdots span { font-size: 10px; font-weight: 700; color: var(--muted); text-align: center; }
+.rdots i { height: 14px; border-radius: 5px; background: var(--s3); }
+.rdots i.on { background: var(--c); box-shadow: 0 0 10px color-mix(in srgb, var(--c) 45%, transparent); }
+.rdots i.today:not(.on) { outline: 1.5px solid var(--muted); outline-offset: -1.5px; }
+.rdots i.future { opacity: .4; }
+.msub { display: flex; justify-content: space-between; margin-top: 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.msub + .mbar { margin-top: 6px; }
+.wg4 i { display: flex; align-items: flex-end; justify-content: center; gap: 2px; padding-bottom: 4px; }
+.wg4 i em { width: 7px; height: 7px; border-radius: 50%; }
+.wg4 i.fill em { box-shadow: 0 0 0 2px rgba(12,16,26,.75); }
+.hday { margin-bottom: 14px; }
+.hday-h { display: flex; justify-content: space-between; align-items: baseline; padding: 0 2px 6px; }
+.hday .hrow { margin-bottom: 6px; }
+.hmini { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; margin-bottom: 6px; border-radius: 12px; background: var(--s1); font-size: 13px; }
+.hmini .cdot { flex: none; }
+.hmini b { font-weight: 650; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }

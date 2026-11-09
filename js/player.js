@@ -295,7 +295,7 @@ function openFlow(title, entries, rounds = 1, onDone, minSecs = 0, opts = {}) {
 function runAdvance() {
   if (RUN.i >= RUN.phases.length - 1) {
     RUN.finished = true; RUN.running = false; RUN.quiet ? sfx.soft(2) : sfx.done();
-    if (RUN.mode === 'flow' && !RUN.onDone) logMobility(RUN.title, RUN.flowIds, (now() - RUN.startTs) / 1000);
+    if (RUN.mode === 'flow' && !RUN.onDone) logMobility(RUN.title, RUN.flowIds, (now() - RUN.startTs) / 1000, RUN.rid);
     renderRun(); return;
   }
   RUN.i++; RUN.left = RUN.phases[RUN.i].secs; RUN.lastSec = null; runStart();
@@ -304,9 +304,9 @@ function runAdvance() {
   else if (p.kind === 'work') (p.sw ? sfx.switch : sfx.go)(); else sfx.rest();
   renderRun();
 }
-function logMobility(title, ids, dur) {
+function logMobility(title, ids, dur, rid) {
   if (dur < 60) return;
-  S.history.push({ id: uid(), date: new Date().toISOString(), kind: 'mobility', cat: 'mobility', title, dur: Math.round(dur), ex: (ids || []).map(id => ({ id, sets: [{ done: true }] })) });
+  S.history.push({ id: uid(), date: new Date().toISOString(), kind: 'mobility', cat: 'mobility', rid: rid || null, title, dur: Math.round(dur), ex: (ids || []).map(id => ({ id, sets: [{ done: true }] })) });
   save();
 }
 
