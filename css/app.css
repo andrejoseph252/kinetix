@@ -822,3 +822,80 @@ em.rub { font-style: italic; font-weight: 400; }
 .wkstrip .sel { outline: 2px solid var(--c-faith); outline-offset: -2px; }
 /* tab bar sits lower; floating Start button clears it */
 .tabbar { bottom: max(6px, calc(var(--safe-b) - 12px)); }
+/* ---------- primers ---------- */
+:root { --c-primer: #ff8fb1; }
+.primercard { position: relative; }
+.primercard .eyebrow.cc { color: var(--c-primer); }
+.pmv { display: flex; align-items: center; gap: 12px; padding: 10px; background: var(--s1); border-radius: 14px; }
+.pmv + .pmv { margin-top: 8px; }
+.pmv .ph.thumb { width: 52px; }
+.pmv .nm { font-weight: 650; line-height: 1.25; }
+.pmv.off .nm { color: var(--dim); text-decoration: line-through; }
+.pmv.off .ph { opacity: .35; }
+.pmv-a { display: flex; gap: 12px; margin-top: 4px; }
+.pmv-a button { font-size: 12.5px; font-weight: 650; color: var(--c-primer); }
+.pmv-a button:disabled { color: var(--dim); opacity: .5; }
+.pstep { display: flex; align-items: center; background: var(--s2); border-radius: 12px; flex: none; }
+.pstep button { width: 38px; height: 44px; font-size: 22px; font-weight: 600; color: var(--text); }
+.pstep output { min-width: 40px; text-align: center; font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; }
+.pstep output small { display: block; font-family: -apple-system, system-ui, sans-serif; font-size: 10px; font-weight: 600; color: var(--muted); margin-top: 2px; }
+.prim .progress-dots i.on, .prim .progress-dots i.cur { background: var(--c-primer); }
+.prim .progress-dots i.on { opacity: .55; }
+.pr-big span { font-family: var(--display); font-weight: 800; font-size: 88px; line-height: .9; color: var(--c-primer); font-variant-numeric: tabular-nums; }
+.pr-big small { display: block; font-size: 14px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+.prim .pstep button { width: 56px; height: 52px; font-size: 26px; }
+.prim .player-nav .btn { height: 56px; font-size: 16px; }
+/* ---------- colloquy ---------- */
+.cqcard { position: relative; overflow: hidden; background: #161a31; }
+.cqcard > *:not(.glow) { position: relative; z-index: 1; }
+.cqcard .eyebrow { color: rgba(241,238,230,.75); }
+.cqlock svg { width: 20px; height: 20px; fill: none; stroke: rgba(241,238,230,.75); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cqlock.big svg { width: 34px; height: 34px; margin: 0 auto; }
+.cqw .chip { background: rgba(255,255,255,.08); color: rgba(241,238,230,.85); border: 1px solid rgba(255,255,255,.1); }
+.cqw .chip.on { background: #f6ecd2; color: #121826; border-color: transparent; }
+.cqw .gtitle { font-size: 34px; }
+.cq-how { margin: 0 0 12px; padding: 0 14px; border-radius: 14px; background: rgba(18,24,40,.55); border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.cq-how summary { padding: 11px 0; font-weight: 650; font-size: 14px; cursor: pointer; color: rgba(241,238,230,.85); }
+.cq-how p { margin: 0 0 12px; font-size: 14.5px; line-height: 1.55; color: #e9e4d8; }
+.cq-starts { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 6px; scrollbar-width: none; }
+.cq-starts::-webkit-scrollbar { display: none; }
+.cq-starts .chip { flex: none; height: 34px; font-size: 13.5px; }
+.cq-text { display: block; width: 100%; min-height: 46vh; margin-top: 10px; padding: 14px; font-size: 18px; line-height: 1.6; border-radius: 16px;
+  background: rgba(14,18,34,.62); border: 1px solid rgba(255,255,255,.12); color: #f6f2e8; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.cq-text:focus { border-color: rgba(246,236,210,.5); }
+.cq-text.rising { animation: cqrise 1.1s ease-in forwards; pointer-events: none; }
+@keyframes cqrise { to { opacity: 0; transform: translateY(-60px) scale(.98); filter: blur(10px); } }
+.cqw .btn.danger { background: rgba(255,107,107,.14); border: 1px solid rgba(255,107,107,.45); }
+.cq-read { margin-top: 12px; font-size: 17px; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
+.cq-ex { min-height: 30vh; }
+.cq-unlock { margin-top: 14px; }
+.cq-unlock input { flex: 1; }
+.cq-done { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); font-weight: 650; }
+.cq-done svg { width: 20px; height: 20px; fill: none; stroke: #f6d27a; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.guide .btn.danger { background: rgba(255,107,107,.14); border: 1px solid rgba(255,107,107,.45); }
+/* cue flash: a soft edge glow on every timer cue (seen even when the phone is muted) */
+#flash { position: fixed; inset: 0; z-index: 80; pointer-events: none; opacity: 0; }
+#flash.on { animation: cueflash .7s ease-out; }
+#flash.go { box-shadow: inset 0 0 0 6px var(--text), inset 0 0 90px rgba(241,238,230,.35); }
+#flash.rest { box-shadow: inset 0 0 0 6px var(--rest), inset 0 0 90px rgba(255,154,82,.35); }
+#flash.soft { box-shadow: inset 0 0 120px rgba(178,157,255,.35); }
+@keyframes cueflash { 0% { opacity: 1 } 100% { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { #flash.on { animation-duration: .4s; } }
+/* follow-along: rep moves have no clock */
+.flow-reps .big { color: var(--c-mobility); }
+.flow-reps .lbl { font-weight: 700; font-size: 17px; }
+.flow-reps .lbl span { display: block; font-weight: 500; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.tctrl .main.done svg { fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; width: 34px; height: 34px; }
+/* prayer sheet: the light runs edge to edge across the top of the sheet instead of sitting in a padded box */
+.sheet .grab { z-index: 2; }
+.psheet .glow.band { left: -16px; right: -16px; top: -29px; height: 190px; border-radius: 22px 22px 0 0; }
+.psheet h3 { padding-top: 10px; }
+/* guided prayer: Back / Next sit at the bottom of the screen, not wherever a short step ends */
+.guide { display: flex; flex-direction: column; min-height: calc(100vh - var(--safe-t) - var(--safe-b) - 32px); min-height: calc(100dvh - var(--safe-t) - var(--safe-b) - 32px); }
+.guide .player-nav { margin-top: auto; padding-top: 18px; }
+.guide .ov-body { padding-bottom: 8px; }
+.guide .cq-starts { margin-top: 14px; }
+.cq-how summary { list-style: none; display: flex; align-items: center; }
+.cq-how summary::-webkit-details-marker { display: none; }
+.cq-how summary::after { content: "+"; margin-left: auto; color: rgba(241,238,230,.6); font-weight: 400; }
+.cq-how[open] summary::after { content: "–"; }

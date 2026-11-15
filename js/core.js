@@ -52,7 +52,7 @@ const CAT = {
   strength: 'Strength', athletic: 'Athletic', kb: 'Kettlebell', engine: 'Conditioning',
   mobility: 'Mobility', recovery: 'Recovery', custom: 'Custom',
 };
-const cvar = c => `var(--c-${CAT[c] ? c : 'custom'})`;
+const cvar = c => `var(--c-${CAT[c] || c === 'primer' ? c : 'custom'})`;
 function blockCat(b) {
   if (b.kind === 'power') return 'athletic';
   if (CLOCK.includes(b.fmt) || b.kind === 'cond') return 'engine';
@@ -96,7 +96,7 @@ const ICON = {
    State
    ========================================================= */
 const KEY = 'kinetix:v1';
-const DEFAULT_SETTINGS = { program: 'athletic', days: 3, length: 45, style: 'mixed', level: 'returning', eq: ['kb', 'band'], units: 'kg', sound: true, vibrate: true };
+const DEFAULT_SETTINGS = { program: 'athletic', days: 3, length: 45, style: 'mixed', level: 'returning', eq: ['kb', 'band'], units: 'kg', sound: true, vibrate: true, loud: false };
 let S = (() => {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
@@ -121,16 +121,31 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e
 /* =========================================================
    Audio / haptics / wake lock
    ========================================================= */
-let AC = null;
+/* Why beeps used to come and go on iPhone:
+   - iOS only lets web audio start inside a tap, and the old code only listened for the first tap.
+   - iOS suspends ("interrupts") audio whenever the app goes to the background, the screen locks,
+     a call or Siri comes in, and it stays off until the next tap. Nothing woke it back up.
+   - Web audio obeys the ring/silent switch unless the page asks for the "playback" audio session.
+   Now: audio is woken on every tap, every beep tries to wake it too, a beep that can't play right
+   away is dropped instead of firing late, and "Beep on silent" opts into the playback session.
+   Each cue also flashes the screen, so you still get it when the phone is muted. */
+let AC = null, AC_PRIMED = false;
 function ac() {
-  if (!AC) { const C = window.AudioContext || window.webkitAudioContext; if (C) AC = new C(); }
-  if (AC && AC.state === 'suspended') AC.resume();
+  if (!AC) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { AC = new C(); } catch (e) { return null; } }
+  if (AC.state !== 'running') AC.resume().catch(() => {});
   return AC;
 }
-['touchstart', 'click'].forEach(ev => document.addEventListener(ev, () => ac(), { once: true, passive: true }));
-function beep(freq = 880, dur = 0.12, vol = 0.3, delay = 0) {
-  if (!S.settings.sound) return;
+function audioSession() {
+  const want = S.settings.loud ? 'playback' : 'auto';
+  try { if (navigator.audioSession && navigator.audioSession.type !== want) navigator.audioSession.type = want; } catch (e) {}
+}
+function unlockAudio() {
+  audioSession();
   const a = ac(); if (!a) return;
+  if (!AC_PRIMED) { try { const s = a.createBufferSource(); s.buffer = a.createBuffer(1, 1, 22050); s.connect(a.destination); s.start(0); AC_PRIMED = true; } catch (e) {} }
+}
+['touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { passive: true, capture: true }));
+function tone(a, freq, dur, vol, delay) {
   const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + delay;
   o.type = 'sine'; o.frequency.value = freq;
   g.gain.setValueAtTime(0.0001, t);
@@ -138,14 +153,28 @@ function beep(freq = 880, dur = 0.12, vol = 0.3, delay = 0) {
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.03);
 }
+function beep(freq = 880, dur = 0.12, vol = 0.3, delay = 0) {
+  if (!S.settings.sound) return;
+  const a = ac(); if (!a) return;
+  if (a.state === 'running') { tone(a, freq, dur, vol, delay); return; }
+  // asleep: play only if it wakes straight away; a countdown beep arriving seconds late is worse than none
+  const t0 = now();
+  a.resume().then(() => { if (now() - t0 < 250) tone(a, freq, dur, vol, delay); }).catch(() => {});
+}
+// visual cue alongside every sound — works on silent, with headphones out, or when audio is asleep
+function flash(kind) {
+  let f = document.getElementById('flash');
+  if (!f) { f = document.createElement('div'); f.id = 'flash'; f.setAttribute('aria-hidden', 'true'); document.body.appendChild(f); }
+  f.className = ''; void f.offsetWidth; f.className = 'on ' + kind;
+}
 const sfx = {
   tick: () => beep(660, 0.09, 0.25),
-  go: () => { beep(990, 0.32, 0.35); buzz(200); },
-  rest: () => { beep(520, 0.3, 0.3); buzz([80, 60, 80]); },
-  done: () => { beep(784, 0.14); beep(988, 0.14, 0.3, 0.16); beep(1318, 0.3, 0.3, 0.32); buzz([120, 60, 120, 60, 200]); },
-  switch: () => { beep(880, 0.1); beep(880, 0.1, 0.3, 0.15); buzz(120); },
-  // gentle chime for evening / bedtime routines
-  soft: (n = 1) => { for (let i = 0; i < n; i++) beep(528, 0.6, 0.07, i * 0.5); },
+  go: () => { beep(990, 0.32, 0.35); buzz(200); flash('go'); },
+  rest: () => { beep(520, 0.3, 0.3); buzz([80, 60, 80]); flash('rest'); },
+  done: () => { beep(784, 0.14); beep(988, 0.14, 0.3, 0.16); beep(1318, 0.3, 0.3, 0.32); buzz([120, 60, 120, 60, 200]); flash('go'); },
+  switch: () => { beep(880, 0.1); beep(880, 0.1, 0.3, 0.15); buzz(120); flash('go'); },
+  // gentle chime for evening / bedtime routines (was so quiet it often went unheard)
+  soft: (n = 1) => { for (let i = 0; i < n; i++) beep(528, 0.7, 0.16, i * 0.5); flash('soft'); },
 };
 function buzz(p) { if (S.settings.vibrate && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} }
 
@@ -159,5 +188,5 @@ async function wake(on) {
     } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
   } catch (e) {}
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (wantWake) wake(true); tick(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (wantWake) wake(true); ac(); tick(); } });
 

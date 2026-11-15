@@ -268,12 +268,13 @@ function renderFlow() {
     ${p.sub || p.round ? `<div class="muted small">${esc([p.round ? `Round ${p.round} / ${p.rounds}` : '', p.sub].filter(Boolean).join(' · '))}</div>` : ''}
     ${p.note ? `<div class="inote" style="margin-top:8px">${esc(p.note)}</div>` : ''}
     ${RUN.quiet && !isPrep ? `<div class="breathe"><i></i><span>Breathe in for 4, out for 6</span></div>` : ''}
-    <div class="flow-time"><div class="big" id="ringNum">${fmt(Math.ceil(left))}</div><div class="bar"><i id="flowBar" style="width:${p.secs ? (1 - left / p.secs) * 100 : 0}%;${isPrep ? 'background:var(--info)' : ''}"></i></div></div>
+    ${p.reps ? `<div class="flow-time flow-reps"><div class="big">${p.reps}</div><div class="lbl">${p.side ? 'reps each side' : 'reps'}<span>Your pace. Tap Done when finished.</span></div></div>`
+      : `<div class="flow-time"><div class="big" id="ringNum">${fmt(Math.ceil(left))}</div><div class="bar"><i id="flowBar" style="width:${p.secs ? (1 - left / p.secs) * 100 : 0}%;${isPrep ? 'background:var(--info)' : ''}"></i></div></div>`}
     <ul class="cues">${ex.cues.map(c => `<li>${esc(c)}</li>`).join('')}</ul>
     <div style="text-align:center;margin-top:6px"><a class="ytlink" href="${ytUrl(ex.name)}" target="_blank" rel="noopener">${ICON.yt} Watch demos</a></div>
     <div class="tctrl" style="margin-top:14px">
       <button class="side" data-act="runPrev" aria-label="Previous">${ICON.prev}</button>
-      <button class="main" data-act="runToggle" aria-label="Play/pause">${RUN.running ? ICON.pause : ICON.play}</button>
+      ${p.reps ? `<button class="main done" data-act="runNext" aria-label="Done">${ICON.check}</button>` : `<button class="main" data-act="runToggle" aria-label="Play/pause">${RUN.running ? ICON.pause : ICON.play}</button>`}
       <button class="side" data-act="runNext" aria-label="Next">${ICON.next}</button>
     </div>
     ${nxt ? `<div class="muted small" style="text-align:center;margin-top:14px">Next: ${esc(BY[nxt.ex].name)}</div>` : ''}
@@ -284,20 +285,21 @@ function openFlow(title, entries, rounds = 1, onDone, minSecs = 0, opts = {}) {
   for (let r = 0; r < rounds; r++) steps = steps.concat(flowSteps(entries, minSecs).map(st => Object.assign(st, { round: rounds > 1 ? r + 1 : 0, rounds })));
   const phases = [];
   steps.forEach((s, i) => {
-    if (!s.sw) phases.push({ kind: 'prep', secs: i === 0 ? 8 : opts.quiet ? 8 : 5, ex: s.ex });
-    phases.push({ kind: 'work', secs: s.secs, ex: s.ex, label: s.label, sub: s.sub, sw: s.sw, note: s.note, round: s.round, rounds: s.rounds });
+    if (!s.sw && !s.reps) phases.push({ kind: 'prep', secs: i === 0 ? 8 : opts.quiet ? 8 : 5, ex: s.ex });
+    phases.push({ kind: 'work', secs: s.secs, reps: s.reps, side: s.side, ex: s.ex, label: s.label, sub: s.sub, sw: s.sw, note: s.note, round: s.round, rounds: s.rounds });
   });
   makeRun(phases, { title, mode: 'flow', onDone });
   RUN.flowIds = [...new Set(entries.map(e => e.ex))];
   RUN.quiet = !!opts.quiet; RUN.rid = opts.rid || null;
   showOverlay('run'); runStart(); if (!RUN.quiet) sfx.tick(); renderRun();
 }
+function runFinish() {
+  RUN.finished = true; RUN.running = false; RUN.quiet ? sfx.soft(2) : sfx.done();
+  if (RUN.mode === 'flow' && !RUN.onDone) logMobility(RUN.title, RUN.flowIds, (now() - RUN.startTs) / 1000, RUN.rid);
+  renderRun();
+}
 function runAdvance() {
-  if (RUN.i >= RUN.phases.length - 1) {
-    RUN.finished = true; RUN.running = false; RUN.quiet ? sfx.soft(2) : sfx.done();
-    if (RUN.mode === 'flow' && !RUN.onDone) logMobility(RUN.title, RUN.flowIds, (now() - RUN.startTs) / 1000, RUN.rid);
-    renderRun(); return;
-  }
+  if (RUN.i >= RUN.phases.length - 1) return runFinish();
   RUN.i++; RUN.left = RUN.phases[RUN.i].secs; RUN.lastSec = null; runStart();
   const p = RUN.phases[RUN.i];
   if (RUN.quiet) { if (p.kind === 'work') sfx.soft(p.sw ? 2 : 1); }
@@ -340,7 +342,7 @@ function tick() {
     }
   }
   // runner
-  if (RUN && RUN.running && OV === 'run') {
+  if (RUN && RUN.running && OV === 'run' && !RUN.phases[RUN.i].reps) {
     const p = RUN.phases[RUN.i], left = (RUN.end - t) / 1000, sec = Math.ceil(left);
     if (left <= 0) runAdvance();
     else {

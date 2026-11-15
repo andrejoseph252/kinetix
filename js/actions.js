@@ -294,8 +294,8 @@ const ACT = {
   // runner
   amrapRound: () => { RUN.count = (RUN.count || 0) + 1; buzz(30); renderRun(); },
   runToggle: () => { if (RUN.running) runPause(); else runStart(); renderRun(); },
-  runNext: () => { if (RUN.i >= RUN.phases.length - 1) { RUN.finished = true; RUN.running = false; renderRun(); return; } runGo(RUN.i + 1); },
-  runPrev: () => { const el = RUN.running ? (now() - (RUN.end - RUN.phases[RUN.i].secs * 1000)) / 1000 : RUN.phases[RUN.i].secs - RUN.left; runGo(el > 3 ? RUN.i : RUN.i - 1); },
+  runNext: () => { if (RUN.i >= RUN.phases.length - 1) { runFinish(); return; } if (RUN.phases[RUN.i].reps) buzz(30); runGo(RUN.i + 1); },
+  runPrev: () => { const p = RUN.phases[RUN.i]; if (p.reps) { runGo(RUN.i - 1); return; } const el = RUN.running ? (now() - (RUN.end - p.secs * 1000)) / 1000 : p.secs - RUN.left; runGo(el > 3 ? RUN.i : RUN.i - 1); },
   runClose: () => {
     const r = RUN; RUN = null;
     if (r && r.finished && r.onDone) r.onDone();

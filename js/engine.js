@@ -908,8 +908,10 @@ function flowSteps(entries, minSecs = 0) {
   const steps = [];
   entries.forEach(({ ex: id, r }) => {
     const t = stepSecs(r);
-    if (minSecs && !t.reps) t.secs = Math.max(t.secs, minSecs);
-    const lbl = [t.reps ? `${t.reps} reps${t.side ? ' / side' : ''}${r.hold ? ` · ${r.hold}s pause` : ''}` : '', r.tempo ? 'tempo ' + r.tempo : ''].filter(Boolean).join(' · ');
+    // reps: no clock. Do them at your own pace and tap Done (both sides in one step)
+    if (t.reps) { steps.push({ ex: id, reps: t.reps, side: !!t.side, secs: 0, label: '', sub: [r.hold ? `${r.hold}s pause` : '', r.tempo ? 'tempo ' + r.tempo : ''].filter(Boolean).join(' · '), note: r.note || '' }); return; }
+    if (minSecs) t.secs = Math.max(t.secs, minSecs);
+    const lbl = r.tempo ? 'tempo ' + r.tempo : '';
     const base = { ex: id, secs: t.secs, sub: lbl, note: r.note || '' };
     if (t.side) { steps.push(Object.assign({}, base, { label: 'Left side' })); steps.push(Object.assign({}, base, { label: 'Right side', sw: true })); }
     else steps.push(Object.assign({}, base, { label: '' }));

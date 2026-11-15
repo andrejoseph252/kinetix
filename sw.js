@@ -1,16 +1,16 @@
 // Kinetix service worker — offline support.
 // Shell: network-first (so GitHub Pages updates show up), falling back to cache.
 // Exercise images: cache-first (they never change).
-const VERSION = 'v20';
+const VERSION = 'v25';
 const SHELL = 'kx-shell-' + VERSION;
 const IMG = 'kx-img-v1';
 const SHELL_FILES = [
-  './', 'index.html', 'css/app.css', 'js/core.js', 'js/engine.js', 'js/views.js', 'js/player.js', 'js/editor.js', 'js/actions.js', 'js/faith.js', 'js/nav.js', 'js/main.js', 'js/data.js',
+  './', 'index.html', 'css/app.css', 'js/core.js', 'js/engine.js', 'js/views.js', 'js/player.js', 'js/editor.js', 'js/actions.js', 'js/primer.js', 'js/faith.js', 'js/colloquy.js', 'js/nav.js', 'js/main.js', 'js/data.js',
   'manifest.webmanifest', 'fonts/big-shoulders-display.woff2', 'icons/icon.svg', 'icons/icon-192.png', 'icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -41,7 +41,8 @@ self.addEventListener('fetch', e => {
   }
 
   e.respondWith(
-    fetch(req).then(res => {
+    // no-cache: always check with the server (cheap 304 when unchanged), so updates show up straight away
+    fetch(req, { cache: 'no-cache' }).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(SHELL).then(c => c.put(req, copy)); }
       return res;
     }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('index.html')))

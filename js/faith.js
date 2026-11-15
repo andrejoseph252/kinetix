@@ -278,7 +278,7 @@ const FAITH_CAT = 'faith';
 function litPill(L) { return `<span class="litpill" style="--lc:${L.hex}"><i></i>${esc(L.season)}${L.week ? ', week ' + L.week : ''}</span>`; }
 function practiceRow(p) {
   const done = isDone(p.id);
-  const act = { rosary: 'Pray', examen: 'Begin', scripture: 'Read', mass: 'Readings', prayer: 'Pray', confession: 'Prayer' }[p.kind];
+  const act = { rosary: 'Pray', examen: 'Begin', scripture: 'Read', mass: 'Readings', prayer: 'Pray', confession: 'Prayer', colloquy: 'Write' }[p.kind];
   return `<div class="prow ${done ? 'done' : ''}">
     <button class="pchk" data-act="fDone" data-p="${p.id}" aria-label="${done ? 'Mark not done' : 'Mark done'}: ${esc(p.name)}">${ICON.check}</button>
     <div class="grow" data-act="fOpen" data-p="${p.id}"><b>${esc(p.name)}</b><span>${esc(practiceSub(p))}</span></div>
@@ -293,7 +293,7 @@ function faithTodayCard() {
     <div class="row"><div class="grow">${litPill(L)}${L.feast ? `<div class="feast">${esc(L.feast)}</div>` : ''}</div><div class="fcount"><b>${done}</b>/${ps.length}</div></div>
     ${L.note ? `<div class="muted small" style="margin-top:6px">${esc(L.note)}</div>` : ''}
     ${y && y.resolution ? `<div class="resol">Yesterday you resolved: <b>${esc(y.resolution)}</b></div>` : ''}
-    ${nx ? `<div class="row" style="margin-top:12px"><div class="grow"><div class="small muted">Next</div><b>${esc(nx.name)}</b><div class="small muted">${esc(practiceSub(nx))}</div></div><button class="btn sm fbtn" data-act="fOpen" data-p="${nx.id}">${{ rosary: 'Pray', examen: 'Begin', scripture: 'Read' }[nx.kind] || 'Open'}</button></div>` : `<div class="small" style="margin-top:10px">Everything for today is done. Thanks be to God.</div>`}
+    ${nx ? `<div class="row" style="margin-top:12px"><div class="grow"><div class="small muted">Next</div><b>${esc(nx.name)}</b><div class="small muted">${esc(practiceSub(nx))}</div></div><button class="btn sm fbtn" data-act="fOpen" data-p="${nx.id}">${{ rosary: 'Pray', examen: 'Begin', scripture: 'Read', colloquy: 'Write' }[nx.kind] || 'Open'}</button></div>` : `<div class="small" style="margin-top:10px">Everything for today is done. Thanks be to God.</div>`}
   </a>`;
 }
 VIEWS.faith = () => {
@@ -326,6 +326,7 @@ VIEWS.faith = () => {
     </div>
     <div class="h2 row"><span class="grow">${dayName}</span><span class="small muted">${ps.filter(p => isDone(p.id)).length} of ${ps.length}</span></div>
     ${ps.length ? Object.keys(WHEN_LABEL).filter(w => groups[w]).map(w => `<div class="pgroup"><div class="eyebrow">${WHEN_LABEL[w]}</div><div class="plist">${groups[w].map(practiceRow).join('')}</div></div>`).join('') : `<div class="card muted small">Nothing scheduled today. <a href="#/faithsetup" style="text-decoration:underline">Choose your practices</a>.</div>`}
+    <div style="margin-top:12px">${cqCard()}</div>
     <div class="card" style="margin-top:12px"><div class="eyebrow">This week</div><div class="wkstrip">${week}</div></div>
 
     <div class="h2">Scripture</div>
@@ -426,7 +427,7 @@ function examenSteps(day = fday()) {
     { k: 'Step 1 of 5', title: 'Become aware of God’s presence', html: `<p class="lead">Be still. Slow your breathing. God is here, and he looks at you with love. Ask the Holy Spirit to help you see your day as he sees it.</p><div class="breathe"><i></i><span>Breathe slowly. Take your time.</span></div>` },
     { k: 'Step 2 of 5', title: 'Review the day with gratitude', html: `<p class="lead">Walk back through today from waking up. Notice the gifts, big and small: people, moments, things that went right. Thank God for them.</p>${ta('gratitude', 'Today I’m grateful for…')}` },
     { k: 'Step 3 of 5', title: 'Pay attention to your feelings', html: `<p class="lead">Where did you feel close to God today, with peace, joy or love? Where did you feel far from him, restless, anxious or closed off? Don’t judge it, just notice.</p>${ta('consolation', 'Closer to God when…')}${ta('desolation', 'Further from God when…')}` },
-    { k: 'Step 4 of 5', title: 'Choose one moment and pray from it', html: `<p class="lead">Pick one moment from today, good or hard, and talk to God about it. Give thanks, ask for healing, and where you fell short, ask for forgiveness.</p>${prayerBlock(['contrition'])}` },
+    { k: 'Step 4 of 5', title: 'Say it plainly', get html() { return cqExamenHTML(); } },
     { k: 'Step 5 of 5', title: 'Look toward tomorrow', html: `<p class="lead">What’s coming tomorrow? Ask for the grace you’ll need. Choose one small, concrete resolution.</p>${ta('resolution', 'Tomorrow I will…')}<div class="muted small" style="margin-top:8px">You’ll see this on Today tomorrow morning.</div>` },
     { k: 'Close', title: 'Close in prayer', html: `<p class="lead">Rest a moment, then close with the Our Father.</p>${prayerBlock(['ourfather', 'glorybe'])}` },
   ];
@@ -453,6 +454,7 @@ function renderGuide() {
   o.scrollTop = 0;
 }
 function finishGuide() {
+  if (GD.kind === 'examen') cqExamenFlush();
   const dur = Math.round((now() - GD.start) / 1000), kind = GD.kind;
   F().sessions.push({ date: new Date().toISOString(), day: dk(GD.day), kind, title: kind === 'rosary' ? `Rosary, ${MYSTERIES[GD.set].name} Mysteries` : 'Examen', dur });
   setDone(kind === 'rosary' ? 'rosary' : 'examen', true, GD.day);
@@ -473,6 +475,7 @@ function planPicker() {
 function openPractice(p) {
   if (p.kind === 'rosary') return openGuide('rosary');
   if (p.kind === 'examen') return openGuide('examen');
+  if (p.kind === 'colloquy') return openColloquy();
   if (p.kind === 'scripture') { if (!F().plan) return planPicker(); go('#/faith'); setTimeout(() => { const c = $('.scard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120); return; }
   if (p.kind === 'prayer') return prayerSheet(p.id === 'angelus' && liturgy().easterSeason ? 'reginacaeli' : p.prayer, p.id);
   if (p.kind === 'mass') { window.open(massReadingsUrl(fday()), '_blank', 'noopener'); return; }

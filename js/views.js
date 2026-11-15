@@ -67,7 +67,7 @@ function route() {
   if (!VIEWS[name]) name = 'today';
   current = name;
   if (MAIN_TABS.includes(name)) lastMain = name;
-  const holy = ['faith', 'faithsetup'].includes(name);
+  const holy = ['faith', 'faithsetup', 'colloquy'].includes(name);
   if (!holy && typeof FSEL !== 'undefined') FSEL = null; // a picked day only lasts while you're in Faith
   if (holy && typeof liturgy === 'function') document.body.style.setProperty('--lc', liturgy().hex);
   const tab = MAIN_TABS.includes(name) ? name : ['s', 'quick', 'day', 'plan'].includes(name) ? (lastMain === 'today' || lastMain === 'mobility' ? lastMain : 'workouts') : lastMain;
@@ -106,7 +106,7 @@ function weekStrip() {
   const by = {}; S.history.forEach(h => { const k = new Date(h.date).toDateString(); (by[k] = by[k] || []).push(histCat(h)); });
   const wk = S.history.filter(h => new Date(h.date) >= mon);
   const mobDays = new Set(wk.filter(h => isMob(histCat(h))).map(h => new Date(h.date).toDateString())).size;
-  const train = wk.filter(h => !isMob(histCat(h))).length;
+  const train = wk.filter(h => !isMob(histCat(h)) && h.kind !== 'mobility').length;
   return `<div class="card">
     <div class="row"><div class="eyebrow grow">This week</div><span class="small muted"><b style="color:var(--c-strength)">${train}</b> training · <b style="color:var(--c-mobility)">${mobDays}</b> mobility day${mobDays === 1 ? '' : 's'}</span></div>
     <div class="wkstrip">${days.map(d => { const k = d.toDateString(), cs = [...new Set(by[k] || [])]; return `<div class="${k === todayK ? 'today' : ''} ${d > nowT && k !== todayK ? 'future' : ''}"><span>${'MTWTFSS'[(d.getDay() + 6) % 7]}</span><b>${d.getDate()}</b><i>${cs.slice(0, 3).map(c => `<em style="background:${cvar(c)}"></em>`).join('')}${S.faith && faithDayCount(d) ? '<em style="background:var(--c-faith)"></em>' : ''}</i></div>`; }).join('')}</div></div>`;
@@ -203,6 +203,7 @@ VIEWS.today = () => {
   $('#view').innerHTML = `${weekStrip()}
     ${activeCard()}
     ${trainedToday ? mobility + `<div class="h2">Up next</div>` + next : `<div class="h2" style="margin-top:22px">Up next</div>` + next + `<div style="margin-top:12px">${mobility}</div>`}
+    <div style="margin-top:12px">${primerCard()}</div>
     ${typeof faithTodayCard === 'function' && faithTodayCard() ? `<div style="margin-top:12px">${faithTodayCard()}</div>` : ''}
     ${else_}`;
 };
@@ -392,8 +393,8 @@ VIEWS.setup = () => {
     </div>
     <div class="field"><div class="lab">Units</div>${seg('units', ['kg', 'lb'])}</div>
     <div class="field"><div class="lab">Timer feedback</div>
-      <div class="chips"><button class="chip ${draft.sound ? 'on' : ''}" data-act="tog" data-k="sound">Beeps</button><button class="chip ${draft.vibrate ? 'on' : ''}" data-act="tog" data-k="vibrate">Vibration</button></div>
-      <div class="muted small" style="margin-top:8px">On iPhone, beeps won't play while the ring/silent switch is on silent. Vibration isn't available in iOS browsers.</div>
+      <div class="chips"><button class="chip ${draft.sound ? 'on' : ''}" data-act="tog" data-k="sound">Beeps</button><button class="chip ${draft.loud ? 'on' : ''}" data-act="tog" data-k="loud">Beep on silent</button><button class="chip ${draft.vibrate ? 'on' : ''}" data-act="tog" data-k="vibrate">Vibration</button></div>
+      <div class="muted small" style="margin-top:8px">iPhones mute app beeps when the silent switch is on. <b>Beep on silent</b> plays them anyway, but iOS may pause music from other apps when a beep plays. The screen also flashes on every cue, so you'll see it even when muted. Vibration isn't available in iOS browsers.</div>
     </div>
     <div style="margin-top:26px" class="stack">
       <button class="btn pri block" data-act="genPlan">${S.plan ? 'Save & generate a new plan' : 'Generate my plan'}</button>
@@ -422,6 +423,7 @@ VIEWS.mobility = () => {
   $('#view').innerHTML = `
     ${routineHero(routineNow(), 'Suggested right now')}
     <div class="mobstat"><div class="mdots">${Array.from({ length: 7 }, (_, i) => `<i class="${i < mobDays ? 'on' : ''}"></i>`).join('')}</div><span class="small muted"><b style="color:var(--c-mobility)">${mobDays}/7</b> days of mobility this week — a little most days beats a lot once.</span></div>
+    ${primerSection()}
     ${Object.entries(WHEN).map(([w, [t, d]]) => `<div class="h2" style="--c:${cvar(WHEN_CAT[w])}"><span class="hbar"></span>${t}</div><div class="muted small" style="margin:-6px 0 10px">${d}</div>
       <div class="stack">${ROUTINES.filter(r => r.when === w && (!r.needs || eq.includes(r.needs))).map(row).join('')}</div>`).join('')}
     <div class="h2" style="--c:var(--c-mobility)"><span class="hbar"></span>Loaded mobility & control</div>
