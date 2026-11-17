@@ -59,7 +59,8 @@ const dateTxt = iso => new Date(iso).toLocaleDateString(undefined, { weekday: 's
    ========================================================= */
 const VIEWS = {};
 let current = 'plan';
-const MAIN_TABS = ['today', 'workouts', 'mobility', 'faith', 'progress'];
+const MAIN_TABS = ['today', 'train', 'workouts', 'mobility', 'face', 'faith', 'progress'];
+const TAB_OF = { workouts: 'train', mobility: 'train', ladder: 'face', suds: 'face', colloquy: 'faith', faithsetup: 'faith' }; // sub-pages light up their tab
 let lastMain = 'today';
 function route() {
   const parts = (location.hash || '#/today').slice(2).split('/');
@@ -70,8 +71,8 @@ function route() {
   const holy = ['faith', 'faithsetup', 'colloquy'].includes(name);
   if (!holy && typeof FSEL !== 'undefined') FSEL = null; // a picked day only lasts while you're in Faith
   if (holy && typeof liturgy === 'function') document.body.style.setProperty('--lc', liturgy().hex);
-  const tab = MAIN_TABS.includes(name) ? name : ['s', 'quick', 'day', 'plan'].includes(name) ? (lastMain === 'today' || lastMain === 'mobility' ? lastMain : 'workouts') : lastMain;
-  document.querySelectorAll('#tabbar a').forEach(a => a.classList.toggle('on', a.dataset.tab === tab));
+  const tab = MAIN_TABS.includes(name) || TAB_OF[name] ? name : ['s', 'quick', 'day', 'plan'].includes(name) ? (lastMain === 'today' || lastMain === 'mobility' ? lastMain : 'workouts') : lastMain;
+  document.querySelectorAll('#tabbar a').forEach(a => a.classList.toggle('on', a.dataset.tab === (TAB_OF[tab] || tab)));
   VIEWS[name](parts[1]);
   window.scrollTo(0, 0);
 }
@@ -204,17 +205,22 @@ VIEWS.today = () => {
     ${activeCard()}
     ${trainedToday ? mobility + `<div class="h2">Up next</div>` + next : `<div class="h2" style="margin-top:22px">Up next</div>` + next + `<div style="margin-top:12px">${mobility}</div>`}
     <div style="margin-top:12px">${primerCard()}</div>
+    ${faceCard() ? `<div style="margin-top:12px">${faceCard()}</div>` : ''}
     ${typeof faithTodayCard === 'function' && faithTodayCard() ? `<div style="margin-top:12px">${faithTodayCard()}</div>` : ''}
     ${else_}`;
 };
+
+/* ---------- Train: Workouts | Mobility ---------- */
+VIEWS.train = () => go('#/' + (S.ui.trainSub === 'mobility' ? 'mobility' : 'workouts'), { replace: true });
+const trainSeg = k => { S.ui.trainSub = k; return `<div class="seg trainseg">${[['workouts', 'Workouts'], ['mobility', 'Mobility']].map(([v, l]) => `<a class="${k === v ? 'on' : ''}" href="#/${v}">${l}</a>`).join('')}</div>`; };
 
 /* ---------- Workouts ---------- */
 const WF = [['all', 'All'], ['plan', 'Plan'], ['mine', 'Mine'], ['strength', 'Strength'], ['mobility', 'Mobility'], ['engine', 'Conditioning'], ['recovery', 'Recovery']];
 const wfMatch = (f, c) => ['all', 'plan', 'mine'].includes(f) || (f === 'strength' ? ['strength', 'athletic', 'kb'].includes(c) : f === c);
 VIEWS.workouts = () => {
-  setTop(`<h1>Workouts</h1>${topIcons()}`);
+  setTop(`<h1>Train</h1>${topIcons()}`);
   const f = S.ui.wf, P = S.plan;
-  let html = activeCard() + `<div class="chips scroll">${WF.map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="wf" data-k="${k}">${l}</button>`).join('')}</div>
+  let html = trainSeg('workouts') + activeCard() + `<div class="chips scroll">${WF.map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="wf" data-k="${k}">${l}</button>`).join('')}</div>
     <div class="row" style="margin-top:12px"><button class="btn pri grow" data-act="goQuick">${ICON.shuffle} Generate a session</button><button class="btn ghost" data-act="newTpl">${ICON.plus} Blank</button></div>
     <a class="qrow liblink" href="#/library" style="--c:var(--c-kb);margin-top:10px;border-radius:var(--r)"><span class="grow"><b>Exercise library</b><span>${EX.length} moves with photos, cues and demos</span></span><span class="qrow-m">${ICON.book}</span></a>`;
   let n = 0;
@@ -412,7 +418,7 @@ VIEWS.setup = () => {
 
 /* ---------- Mobility ---------- */
 VIEWS.mobility = () => {
-  setTop(`<h1>Mobility</h1>${topIcons()}`);
+  setTop(`<h1>Train</h1>${topIcons()}`);
   const m = S.ui.mob, eq = S.settings.eq;
   const mon = mondayOf(new Date());
   const mobDays = new Set(S.history.filter(h => new Date(h.date) >= mon && isMob(histCat(h))).map(h => new Date(h.date).toDateString())).size;
@@ -421,6 +427,7 @@ VIEWS.mobility = () => {
       <div class="grow"><div class="nm">${esc(r.name)}</div><div class="muted small">${esc(r.blurb)}</div></div>
       <button class="rt-go" data-act="routineGo" data-id="${r.id}" aria-label="Start ${esc(r.name)}">${PLAY}</button></div>`;
   $('#view').innerHTML = `
+    ${trainSeg('mobility')}
     ${routineHero(routineNow(), 'Suggested right now')}
     <div class="mobstat"><div class="mdots">${Array.from({ length: 7 }, (_, i) => `<i class="${i < mobDays ? 'on' : ''}"></i>`).join('')}</div><span class="small muted"><b style="color:var(--c-mobility)">${mobDays}/7</b> days of mobility this week — a little most days beats a lot once.</span></div>
     ${primerSection()}
@@ -628,6 +635,7 @@ VIEWS.progress = () => {
       ${tRows.length || rRows.length ? `${tRows.length ? `<div class="msub"><span>Training</span><b class="num">${sum(tm)}</b></div>${mbars(tRows, maxM)}` : ''}${rRows.length ? `<div class="msub"><span>Routines</span><b class="num">${sum(rm)}</b></div>${mbars(rRows, maxM)}` : ''}` : '<div class="muted small" style="margin-top:8px">Nothing logged yet this week.</div>'}
     </div>
     ${faithProgress()}
+    ${faceProgress()}
     <div class="card" style="margin-top:10px"><div class="eyebrow">Last 4 weeks</div>
       <div class="weekgrid" style="margin-top:8px">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(x => `<span class="muted" style="font-size:10px;text-align:center;font-weight:700">${x}</span>`).join('')}</div>
       <div class="weekgrid wg4" style="margin-top:4px">${cells}</div>
